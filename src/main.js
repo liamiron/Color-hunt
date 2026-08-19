@@ -1,0 +1,156 @@
+/**
+ * Color Hunt — Main Entry Point
+ *
+ * Orchestrates: Supabase init → device ID → data load → UI render →
+ * weekly-reset check → visibility refresh listener
+ */
+
+import { getDeviceId, loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } from './state.js'
+import { applyAccentColor } from './prompts.js'
+import { initGrid, updateGridPhotos } from './grid.js'
+import { initArchive, updateArchive } from './archive.js'
+import { checkAndReset, setupDevReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
+
+// ── DOM refs ──────────────────────────────────────────────────
+const promptHighlight = document.getElementById('prompt-highlight')
+const gridLoadingEl   = document.getElementById('grid-loading')
+const photoGridEl     = document.getElementById('photo-grid')
+const questLockedEl   = document.getElementById('quest-locked')
+const countdownEl      = document.getElementById('quest-countdown')
+const countdownValueEl = document.getElementById('countdown-value')
+
+// ── App State ─────────────────────────────────────────────────
+let _deviceId   = null
+let _activeQuest = null
+
+// ── Bootstrap ─────────────────────────────────────────────────
+
+async function init() {
+  showLoading(true)
+
+  try {
+    _deviceId = getDeviceId()
+    await loadAndRender()
+  } catch (err) {
+    console.error('[main] init error:', err)
+    showError(err)
+  }
+
+  // Re-fetch when user returns to the tab (replaces Realtime)
+  setupVisibilityRefresh(async () => {
+    try {
+      await loadAndRender(/* silent = */ true)
+    } catch (err) {
+      console.warn('[main] visibility refresh error:', err)
+    }
+  })
+}
+
+async function loadAndRender(silent = false) {
+  if (!silent) showLoading(true)
+
+  // 1. Load active quest
+  let quest = await loadActiveQuest()
+
+  // 2. Check if quest has expired → weekly reset
+  if (quest) {
+    const wasReset = await checkAndReset(quest)
+    if (wasReset) {
+      // Re-load after reset
+      quest = await loadActiveQuest()
+    }
+  }
+
+  _activeQuest = quest
+
+  if (!quest) {
+    showError(new Error('No active quest found. Check Supabase setup.'))
+    return
+  }
+
+  // 3. Apply prompt accent color to the whole UI
+  applyAccentColor(quest.prompt_color)
+
+  // 4. Update header + start countdown
+  promptHighlight.textContent = `TARGET: ${quest.prompt_name}`
+  startCountdown(quest.start_date)
+
+  // 5. Load this user's photos
+  const photos = await loadMyPhotos(quest.id, _deviceId)
+
+  // 6. Render grid
+  showLoading(false)
+
+  if (silent) {
+    // Just update grid data without full re-init
+    updateGridPhotos(photos)
+  } else {
+    initGrid(quest.id, _deviceId, photos)
+  }
+
+  // 7. Load + render archive
+  const archive = await loadArchive()
+  if (silent) {
+    updateArchive(archive)
+  } else {
+    initArchive(archive)
+  }
+
+  // 8. Set up dev reset shortcut (triple-tap header)
+  if (!silent) {
+    setupDevReset(quest, async () => {
+      await loadAndRender()
+    })
+  }
+}
+
+// ── UI helpers ────────────────────────────────────────────────
+
+function showLoading(show) {
+  gridLoadingEl.hidden  = !show
+  photoGridEl.hidden    = show
+  if (questLockedEl) questLockedEl.hidden = true
+}
+
+function showError(err) {
+  // Show loading area with error content, hide grid
+  photoGridEl.hidden = true
+  if (questLockedEl) questLockedEl.hidden = true
+
+  gridLoadingEl.innerHTML = `
+    <div style="text-align:center; padding: 32px 24px;">
+      <div style="font-size:2.5rem; margin-bottom:12px;">⚠️</div>
+      <p style="font-size:0.95rem; line-height:1.5; color:#555;">
+        ${err?.message || 'Something went wrong.'}<br><br>
+        Make sure your <code>.env</code> file is set up.<br>
+        See <strong>supabase/setup-guide.md</strong>.
+      </p>
+    </div>
+  `
+  gridLoadingEl.hidden = false
+}
+
+// ── Countdown ────────────────────────────────────────────────
+
+let _countdownInterval = null
+
+function startCountdown(startDate) {
+  // Clear any previous interval
+  clearInterval(_countdownInterval)
+
+  function tick() {
+    if (!countdownValueEl || !countdownEl) return
+    const text    = timeUntilReset(startDate)
+    const resetMs = getNextSundayMidnight(startDate).getTime() - Date.now()
+    const urgent  = resetMs > 0 && resetMs < 24 * 60 * 60 * 1000
+
+    countdownValueEl.textContent = text
+    countdownEl.classList.toggle('quest-countdown--urgent', urgent)
+  }
+
+  tick()  // run immediately
+  _countdownInterval = setInterval(tick, 60_000)  // update every minute
+}
+
+// ── Start ─────────────────────────────────────────────────────
+init()

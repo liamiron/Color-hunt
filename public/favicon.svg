@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#F5F3EE" stroke="#3D4E1A" stroke-width="3"/>
+  <!-- Color swatches — 4 circles representing the hunt palette -->
+  <circle cx="34" cy="38" r="14" fill="#C8E600" stroke="#3D4E1A" stroke-width="2"/>
+  <circle cx="62" cy="34" r="11" fill="#3B82F6" stroke="#3D4E1A" stroke-width="2"/>
+  <circle cx="66" cy="62" r="13" fill="#FF6B6B" stroke="#3D4E1A" stroke-width="2"/>
+  <circle cx="36" cy="66" r="10" fill="#4A9A3C" stroke="#3D4E1A" stroke-width="2"/>
+  <!-- Center dot -->
+  <circle cx="50" cy="50" r="5" fill="#3D4E1A"/>
+</svg>

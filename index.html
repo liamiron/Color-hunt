@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Color Hunt — Weekly Photo Quest</title>
+  <meta name="description"
+    content="A weekly visual photo quest. Match the prompt, fill your grid, see the group collage." />
+  <meta name="theme-color" content="#FAF8F5" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════
+         HEADER — prompt text only (per PRD)
+    ══════════════════════════════════════ -->
+  <header id="header" class="header">
+    <div class="header__inner">
+      <div class="header__pill-wrap">
+        <h1 id="prompt-text" class="header__prompt">
+          <span class="highlight" id="prompt-highlight">TARGET: LEMON YELLOW</span>
+        </h1>
+        <p id="quest-countdown" class="quest-countdown" aria-live="polite">
+          <span class="quest-countdown__label">Ends in:</span>
+          <span id="countdown-value">—</span>
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════
+         MAIN — personal 3×3 photo grid
+    ══════════════════════════════════════ -->
+  <main id="main" class="main">
+    <!-- Loading state -->
+    <div id="grid-loading" class="grid-loading" aria-live="polite">
+      <div class="spinner"></div>
+      <p>Loading your quest…</p>
+    </div>
+
+    <!-- The 3×3 grid -->
+    <div id="photo-grid" class="grid" role="grid" aria-label="Your 3×3 photo grid" hidden>
+      <!-- 9 slots rendered by JS -->
+    </div>
+
+    <!-- Quest locked overlay (end of week, before reset) -->
+    <div id="quest-locked" class="quest-locked" hidden>
+      <div class="quest-locked__icon">🔒</div>
+      <p class="quest-locked__text">Quest closed — collage being generated…</p>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+         FAB — floating add button
+    ══════════════════════════════════════ -->
+  <button id="fab-btn" class="fab" aria-label="Add a photo to your grid">
+    <svg class="fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  </button>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" accept="image/*" hidden aria-hidden="true" />
+
+  <!-- Delete confirmation tooltip -->
+  <div id="delete-tooltip" class="delete-tooltip" hidden role="dialog" aria-label="Delete photo">
+    <p class="delete-tooltip__text">Remove this photo?</p>
+    <div class="delete-tooltip__actions">
+      <button id="delete-confirm" class="delete-tooltip__btn delete-tooltip__btn--confirm">Delete</button>
+      <button id="delete-cancel" class="delete-tooltip__btn delete-tooltip__btn--cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+         ARCHIVE — bottom sheet
+    ══════════════════════════════════════ -->
+  <aside id="archive-sheet" class="archive" aria-label="Archive of past quests">
+    <!-- Drag handle -->
+    <div id="archive-handle" class="archive__handle" role="button" tabindex="0" aria-label="Open archive">
+      <span class="archive__pill"></span>
+    </div>
+
+    <!-- Sheet header -->
+    <div class="archive__header">
+      <h2 class="archive__title">
+        <span class="highlight highlight--archive">Archive</span>
+      </h2>
+      <button id="archive-toggle" class="archive__chevron" aria-label="Toggle archive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Scrollable archive list -->
+    <div id="archive-list" class="archive__list" role="list" aria-label="Past quests">
+      <!-- Rendered by JS -->
+    </div>
+  </aside>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast" aria-live="assertive" hidden></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
