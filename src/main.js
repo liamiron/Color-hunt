@@ -173,7 +173,7 @@ function _initGroupIdChip() {
     return
   }
 
-  groupIdDisplay.textContent = code
+  groupIdDisplay.textContent = `Group ID: ${code}`
   groupIdDisplay.hidden = false
 
   groupIdDisplay.addEventListener('click', async () => {

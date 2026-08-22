@@ -33,7 +33,7 @@ export function initGroup() {
 // ── Join ──────────────────────────────────────────────────────
 
 function _bindJoinBtn() {
-  const joinBtn   = document.getElementById('group-join-btn')
+  const joinBtn = document.getElementById('group-join-btn')
   const codeInput = document.getElementById('group-code-input')
 
   joinBtn.addEventListener('click', async () => {
@@ -98,12 +98,12 @@ function _bindCreateBtn() {
     const { pickNextPrompt } = await import('./prompts.js')
     const prompt = pickNextPrompt([])
     await supabase.from('quests').insert({
-      group_id:     group.id,
-      week_number:  1,
-      prompt_name:  prompt.name,
+      group_id: group.id,
+      week_number: 1,
+      prompt_name: prompt.name,
       prompt_color: prompt.color,
-      start_date:   new Date().toISOString(),
-      is_active:    true,
+      start_date: new Date().toISOString(),
+      is_active: true,
     })
 
     // 4. Assign user to the group

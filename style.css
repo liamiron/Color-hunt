@@ -82,6 +82,17 @@ img {
 }
 
 /* ════════════════════════════════════════════════════════════
+   MAIN SCREEN WRAPPER
+   ════════════════════════════════════════════════════════════ */
+#screen-main {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ════════════════════════════════════════════════════════════
    HEADER
    ════════════════════════════════════════════════════════════ */
 .header {
@@ -112,6 +123,7 @@ img {
   /* shrink to content so badge centres on the pill */
   padding-bottom: 14px;
   /* space for the badge to hang out below */
+  padding-top: 14px;
 }
 
 .header__prompt {
@@ -650,8 +662,8 @@ img {
 .archive__chevron svg {
   width: 18px;
   height: 18px;
-  stroke: var(--ch-accent-dark);
-  /* uses accent-dark for icon stroke */
+  stroke: var(--ch-ink);
+  /* uses ink for icon stroke to be visible */
   transition: transform 0.35s ease;
 }
 
@@ -1184,21 +1196,25 @@ img {
   color: var(--ch-ink);
   background: transparent;
   border: 2px solid var(--ch-ink);
-  border-radius: 6px 8px 5px 7px / 7px 5px 8px 6px; /* Hand-drawn look */
+  border-radius: 6px 8px 5px 7px / 7px 5px 8px 6px;
+  /* Hand-drawn look */
   transform: rotate(-0.5deg);
   transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .auth-social__btn:hover {
   background: rgba(61, 78, 26, 0.05);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
+
 .auth-social__btn--facebook {
   transform: rotate(-1deg);
 }
+
 .auth-social__btn--facebook:active {
   transform: scale(0.98) rotate(-1deg);
 }
+
 .auth-social__btn:active {
   transform: scale(0.98) rotate(-0.5deg);
 }
@@ -1206,6 +1222,7 @@ img {
 .auth-social__btn--google {
   transform: rotate(0.5deg);
 }
+
 .auth-social__btn--google:active {
   transform: scale(0.98) rotate(0.5deg);
 }
@@ -1393,8 +1410,9 @@ img {
 /* ── Group ID Chip (Epic 6) ── */
 .header__group-id {
   position: absolute;
-  top: 18px;
+  top: 0px;
   left: 20px;
+  z-index: 20;
   font-family: var(--ch-font-body);
   font-size: 0.75rem;
   font-weight: 700;
@@ -1402,14 +1420,13 @@ img {
   background: var(--ch-bg-card);
   padding: 4px 10px;
   border-radius: var(--ch-radius-sm);
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   transition: opacity 0.2s, transform 0.1s, border-color 0.2s;
 }
 
 .header__group-id:hover {
   opacity: 1;
-  border-color: var(--ch-accent);
+  box-shadow: var(--ch-shadow);
 }
 
 .header__group-id:active {
