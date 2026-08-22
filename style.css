@@ -232,26 +232,9 @@ img {
 /* Empty slot */
 .slot--empty {
   background: var(--ch-bg-card);
-  border: 2.5px dashed var(--ch-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.slot--empty .slot__plus {
-  color: var(--ch-accent-dark);
-  font-size: 1.8rem;
-  font-weight: 300;
-  line-height: 1;
-  pointer-events: none;
-  transition: color 0.2s, transform 0.2s;
-  opacity: 0.55;
-}
-
-.slot--empty:hover .slot__plus {
-  color: var(--ch-accent-dark);
-  opacity: 1;
-  transform: scale(1.15);
 }
 
 .slot--empty:hover {
@@ -262,7 +245,7 @@ img {
 
 /* Filled slot */
 .slot--filled {
-  border: 2.5px solid var(--ch-accent-dark);
+  border: 2.5px solid var(--ch-bg-card);
   /* week-colored border */
   box-shadow: var(--ch-shadow-slot);
   transform: rotate(var(--tilt, 0deg));

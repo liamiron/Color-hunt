@@ -4,19 +4,19 @@ import { showToast } from './ui.js'
 // Per-cell tilt values (degrees) — deterministic, organic feel
 const TILTS = [-2, 1, -1.5, 0.5, -1, 2, -0.5, 1.5, -1]
 
-let _questId    = null
-let _deviceId   = null
-let _photos     = []     // array length 9, null = empty
-let _isLocked   = false  // quest locked (end-of-week)
+let _questId = null
+let _deviceId = null
+let _photos = []     // array length 9, null = empty
+let _isLocked = false  // quest locked (end-of-week)
 let _pendingSlot = null  // which slot the user clicked
 
 // DOM refs
-const gridEl        = document.getElementById('photo-grid')
-const fabEl         = document.getElementById('fab-btn')
-const fileInputEl   = document.getElementById('file-input')
+const gridEl = document.getElementById('photo-grid')
+const fabEl = document.getElementById('fab-btn')
+const fileInputEl = document.getElementById('file-input')
 const deleteTooltip = document.getElementById('delete-tooltip')
 const deleteConfirm = document.getElementById('delete-confirm')
-const deleteCancel  = document.getElementById('delete-cancel')
+const deleteCancel = document.getElementById('delete-cancel')
 
 /**
  * Initialise the grid controller.
@@ -26,7 +26,7 @@ const deleteCancel  = document.getElementById('delete-cancel')
  * @param {boolean} isLocked
  */
 export function initGrid(questId, deviceId, photos, isLocked = false) {
-  _questId  = questId
+  _questId = questId
   _deviceId = deviceId
   _isLocked = isLocked
 
@@ -61,7 +61,7 @@ function renderGrid() {
 
   for (let i = 0; i < 9; i++) {
     const photo = _photos[i]
-    const slot  = document.createElement('div')
+    const slot = document.createElement('div')
     slot.className = photo ? 'slot slot--filled' : 'slot slot--empty'
     slot.dataset.index = i
     slot.setAttribute('role', 'gridcell')
@@ -70,10 +70,10 @@ function renderGrid() {
     if (photo) {
       // Filled slot
       const img = document.createElement('img')
-      img.className   = 'slot__img'
-      img.src         = photo.image_url
-      img.alt         = `Your photo for slot ${i + 1}`
-      img.loading     = 'lazy'
+      img.className = 'slot__img'
+      img.src = photo.image_url
+      img.alt = `Your photo for slot ${i + 1}`
+      img.loading = 'lazy'
       slot.appendChild(img)
 
       if (!_isLocked) {
@@ -81,11 +81,6 @@ function renderGrid() {
       }
     } else {
       // Empty slot
-      const plus = document.createElement('span')
-      plus.className   = 'slot__plus'
-      plus.textContent = '+'
-      plus.setAttribute('aria-hidden', 'true')
-      slot.appendChild(plus)
       slot.setAttribute('aria-label', `Empty slot ${i + 1} — tap to add a photo`)
 
       if (!_isLocked) {
@@ -181,11 +176,11 @@ async function uploadPhoto(file, slotIndex) {
     const { error: dbError } = await supabase
       .from('photos')
       .upsert({
-        quest_id:     _questId,
-        device_id:    _deviceId,
-        slot_index:   slotIndex,
+        quest_id: _questId,
+        device_id: _deviceId,
+        slot_index: slotIndex,
         storage_path: storagePath,
-        image_url:    imageUrl,
+        image_url: imageUrl,
       }, { onConflict: 'quest_id,device_id,slot_index' })
 
     if (dbError) throw dbError
@@ -211,7 +206,7 @@ async function uploadPhoto(file, slotIndex) {
 
 // ── Long press → delete ───────────────────────────────────────
 
-let _longPressTimer  = null
+let _longPressTimer = null
 let _deleteSlotIndex = null
 
 function setupLongPress(slotEl, slotIndex) {
@@ -232,7 +227,7 @@ function setupLongPress(slotEl, slotIndex) {
   }
 
   slotEl.addEventListener('pointerdown', startHold)
-  slotEl.addEventListener('pointerup',   cancelHold)
+  slotEl.addEventListener('pointerup', cancelHold)
   slotEl.addEventListener('pointerleave', cancelHold)
   slotEl.addEventListener('contextmenu', e => e.preventDefault())
 }
@@ -243,7 +238,7 @@ function showDeleteTooltip(slotIndex, slotEl) {
   // Position above the slot
   const rect = slotEl.getBoundingClientRect()
   deleteTooltip.style.left = `${Math.min(rect.left + rect.width / 2 - 90, window.innerWidth - 200)}px`
-  deleteTooltip.style.top  = `${Math.max(rect.top - 100, 10)}px`
+  deleteTooltip.style.top = `${Math.max(rect.top - 100, 10)}px`
   deleteTooltip.hidden = false
 }
 
@@ -317,15 +312,15 @@ function resizeImage(file, maxDim) {
       if (width > maxDim || height > maxDim) {
         if (width > height) {
           height = Math.round((height / width) * maxDim)
-          width  = maxDim
+          width = maxDim
         } else {
-          width  = Math.round((width / height) * maxDim)
+          width = Math.round((width / height) * maxDim)
           height = maxDim
         }
       }
 
       const canvas = document.createElement('canvas')
-      canvas.width  = width
+      canvas.width = width
       canvas.height = height
       canvas.getContext('2d').drawImage(img, 0, 0, width, height)
       canvas.toBlob(blob => {
