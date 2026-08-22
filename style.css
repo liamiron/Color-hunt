@@ -4,11 +4,13 @@
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --ch-accent: #C8E600;
-  --ch-accent-dark: #9BB300;
-  /* darker shade for borders/text on accent */
-  --ch-accent-text: #3D4E1A;
-  /* adaptive: readable text ON the accent bg */
+  /* Accent defaults are transparent — JS sets the real color via applyAccentColor()
+     before anything accent-coloured is shown. Keeping them invisible here
+     prevents ANY yellow flash on first paint. */
+  --ch-accent: transparent;
+  --ch-accent-dark: transparent;
+  --ch-accent-text: transparent;
+  --ch-fab-ring: transparent;
   --ch-ink: #3D4E1A;
   /* dark olive — borders, strong text */
   --ch-ink-muted: #7A8C55;
@@ -86,6 +88,7 @@ img {
   width: 100%;
   max-width: 430px;
   /* Extra bottom padding so the overlapping badge doesn't clip */
+  margin-top: 20px;
   padding: 20px 20px 22px;
   display: flex;
   align-items: center;
@@ -176,24 +179,11 @@ img {
   margin-right: 1px;
 }
 
-/* Pulse red when under 24h */
+/* Red highlight when under 24h — no pulse animation */
 .quest-countdown--urgent {
   background: #FEE2E2;
   border-color: #DC2626;
   color: #991B1B;
-  animation: countdown-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes countdown-pulse {
-
-  0%,
-  100% {
-    transform: translateX(-50%) rotate(1.5deg) scale(1);
-  }
-
-  50% {
-    transform: translateX(-50%) rotate(1.5deg) scale(1.06);
-  }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -203,7 +193,7 @@ img {
   flex: 1;
   width: 100%;
   max-width: 430px;
-  padding: 16px 20px 24px;
+  padding: 0px 20px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,23 +232,25 @@ img {
 /* Empty slot */
 .slot--empty {
   background: var(--ch-bg-card);
-  border: 2.5px dashed var(--ch-ink-muted);
+  border: 2.5px dashed var(--ch-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .slot--empty .slot__plus {
-  color: var(--ch-ink-muted);
+  color: var(--ch-accent-dark);
   font-size: 1.8rem;
   font-weight: 300;
   line-height: 1;
   pointer-events: none;
   transition: color 0.2s, transform 0.2s;
+  opacity: 0.55;
 }
 
 .slot--empty:hover .slot__plus {
   color: var(--ch-accent-dark);
+  opacity: 1;
   transform: scale(1.15);
 }
 
@@ -324,20 +316,124 @@ img {
   animation: spin 0.7s linear infinite;
 }
 
-/* ── Loading State ────────────────────────────────────────── */
+/* ── Main-Screen Loader Overlay (Lottie) ─────────────────── */
+.main-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ch-bg);
+  /* Fade-out transition */
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  pointer-events: all;
+}
+
+.main-loader.main-loader--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.main-loader__canvas {
+  width: 260px;
+  height: 260px;
+}
+
+/* ── Loading State / Skeleton ─────────────────────────────── */
 .grid-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   flex: 1;
-  /* fill the main flex column */
   width: 100%;
   min-height: 300px;
-  /* guaranteed vertical space to centre within */
-  color: var(--ch-text-soft);
-  font-size: 0.9rem;
+}
+
+/* Skeleton 3×3 grid */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 390px;
+  aspect-ratio: 1;
+}
+
+.skeleton-cell {
+  border-radius: var(--ch-radius);
+  background: linear-gradient(90deg,
+      #E8E5DF 0%,
+      #F3F0EA 45%,
+      #E8E5DF 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  aspect-ratio: 1;
+}
+
+/* stagger each cell so shimmer feels organic */
+.skeleton-cell:nth-child(1) {
+  animation-delay: 0.00s;
+}
+
+.skeleton-cell:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.skeleton-cell:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.skeleton-cell:nth-child(4) {
+  animation-delay: 0.10s;
+}
+
+.skeleton-cell:nth-child(5) {
+  animation-delay: 0.18s;
+}
+
+.skeleton-cell:nth-child(6) {
+  animation-delay: 0.26s;
+}
+
+.skeleton-cell:nth-child(7) {
+  animation-delay: 0.20s;
+}
+
+.skeleton-cell:nth-child(8) {
+  animation-delay: 0.28s;
+}
+
+.skeleton-cell:nth-child(9) {
+  animation-delay: 0.36s;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Skeleton pill for the header prompt area */
+.skeleton-pill {
+  height: 38px;
+  width: 200px;
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+      #E8E5DF 0%,
+      #F3F0EA 45%,
+      #E8E5DF 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  margin: 0 auto;
 }
 
 .spinner {
@@ -497,6 +593,8 @@ img {
   z-index: 100;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  /* contain card content within rounded sheet */
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
 }
@@ -555,8 +653,8 @@ img {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--ch-bg);
-  /* accent background */
+  /* Soft tinted accent — uses the accent color at very low opacity */
+  background: color-mix(in srgb, var(--ch-accent) 18%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,11 +662,15 @@ img {
   flex-shrink: 0;
 }
 
+.archive__chevron:hover {
+  background: color-mix(in srgb, var(--ch-accent) 30%, transparent);
+}
+
 .archive__chevron svg {
   width: 18px;
   height: 18px;
-  stroke: var(--ch-accent-text);
-  /* adaptive text color */
+  stroke: var(--ch-accent-dark);
+  /* uses accent-dark for icon stroke */
   transition: transform 0.35s ease;
 }
 
@@ -579,6 +681,8 @@ img {
 /* Scrollable list */
 .archive__list {
   flex: 1;
+  min-height: 0;
+  /* critical: lets flex child shrink & scroll */
   overflow-y: auto;
   padding: 16px 20px 40px;
   display: flex;
@@ -615,7 +719,7 @@ img {
 /* ── Archive Card ─────────────────────────────────────────── */
 .archive-card {
   border-radius: var(--ch-radius);
-  overflow: hidden;
+  overflow: clip;
   border: 2px solid var(--ch-accent);
   /* week-tinted card border */
   background: var(--ch-bg-card);
@@ -634,6 +738,29 @@ img {
   justify-content: space-between;
   padding: 14px 16px 10px;
   gap: 8px;
+}
+
+.archive-card__download-btn {
+  background: none;
+  border: none;
+  color: var(--ch-accent);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.archive-card__download-btn:hover {
+  background: var(--ch-bg-layer);
+  transform: scale(1.05);
+}
+
+.archive-card__download-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .archive-card__week {
@@ -657,6 +784,15 @@ img {
   display: block;
 }
 
+.archive-card__collage--clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.archive-card__collage--clickable:hover {
+  opacity: 0.9;
+}
+
 .archive-card__collage-placeholder {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -666,6 +802,90 @@ img {
   justify-content: center;
   color: var(--ch-text-soft);
   font-size: 0.85rem;
+}
+
+/* ════════════════════════════════════════════════════════════
+   COLLAGE LIGHTBOX
+   ════════════════════════════════════════════════════════════ */
+
+.collage-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: lightbox-fade-in 0.22s ease;
+  cursor: zoom-out;
+}
+
+.collage-lightbox[hidden] {
+  display: none;
+}
+
+@keyframes lightbox-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.collage-lightbox__img {
+  max-width: min(92vw, 520px);
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  cursor: default;
+  animation: lightbox-img-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes lightbox-img-in {
+  from {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.collage-lightbox__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.collage-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.1);
+}
+
+.collage-lightbox__close svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* ════════════════════════════════════════════════════════════

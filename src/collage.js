@@ -1,7 +1,8 @@
 import { supabase } from './supabase.js'
 import { loadAllQuestPhotos } from './state.js'
 
-const CANVAS_SIZE = 1200
+const CANVAS_WIDTH = 1080
+const CANVAS_HEIGHT = 1920
 
 /**
  * Generates an artistic mosaic collage from all group photos,
@@ -66,132 +67,135 @@ async function loadImages(urls) {
 async function renderCollage(images, promptName, promptColor) {
   return new Promise(resolve => {
     const canvas = document.createElement('canvas')
-    canvas.width  = CANVAS_SIZE
-    canvas.height = CANVAS_SIZE
+    canvas.width  = CANVAS_WIDTH
+    canvas.height = CANVAS_HEIGHT
     const ctx = canvas.getContext('2d')
 
-    // Background — off-white
-    ctx.fillStyle = '#F5F3EE'
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    // Background — white
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
     const count = images.length
-    const layouts = computeLayout(count)
+    
+    // Dynamically calculate the best row-based layout (no white space)
+    let bestRows = 1;
+    let bestScore = Infinity;
+    let bestDistribution = [];
 
-    // Draw each photo tile
-    for (let i = 0; i < Math.min(count, layouts.length); i++) {
-      const img    = images[i]
-      const layout = layouts[i]
-      drawTile(ctx, img, layout)
+    for (let r = 1; r <= count; r++) {
+      let score = 0;
+      let distribution = [];
+      for (let i = 0; i < r; i++) {
+        const itemsInRow = Math.floor((i + 1) * count / r) - Math.floor(i * count / r);
+        distribution.push(itemsInRow);
+      }
+      
+      // Sort distribution descending so rows with MORE items are at the top,
+      // and rows with FEWER items (wider cells) are at the bottom for visual stability.
+      distribution.sort((a, b) => b - a);
+
+      for (let i = 0; i < r; i++) {
+        const itemsInRow = distribution[i];
+        const cellW = CANVAS_WIDTH / itemsInRow;
+        const cellH = CANVAS_HEIGHT / r;
+        const cellRatio = cellW / cellH;
+        const ratioDiff = Math.abs(cellRatio - 0.75);
+        score += ratioDiff * itemsInRow;
+      }
+      
+      const avgScore = score / count;
+      if (avgScore < bestScore) {
+        bestScore = avgScore;
+        bestRows = r;
+        bestDistribution = distribution;
+      }
     }
 
-    // Overlay: large decorative prompt text at the bottom
+    // Draw the photos using the best layout
+    const tileH = CANVAS_HEIGHT / bestRows;
+    let photoIndex = 0;
+
+    for (let r = 0; r < bestRows; r++) {
+      const itemsInRow = bestDistribution[r];
+      const tileW = CANVAS_WIDTH / itemsInRow;
+      const y = r * tileH;
+      
+      for (let c = 0; c < itemsInRow; c++) {
+        const img = images[photoIndex];
+        const x = c * tileW;
+        drawGridTile(ctx, img, x, y, tileW, tileH);
+        photoIndex++;
+      }
+    }
+
+    // Overlay: prompt text in the middle
     drawPromptOverlay(ctx, promptName, promptColor)
 
     canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.88)
   })
 }
 
-/**
- * Computes positions/sizes for each tile in an artistic mosaic layout.
- * Photos overlap slightly with varied rotation.
- */
-function computeLayout(count) {
-  const layouts = []
-  const tileSize = count <= 4 ? 520 : count <= 9 ? 380 : 280
-  const margin   = 80
-
-  // Deterministic pseudo-random positions seeded by index
-  for (let i = 0; i < count; i++) {
-    const seed = i * 137.5  // golden angle
-    const col  = i % 3
-    const row  = Math.floor(i / 3)
-
-    const baseX = margin + col * ((CANVAS_SIZE - 2 * margin - tileSize) / 2)
-    const baseY = margin + row * ((CANVAS_SIZE - 2 * margin - tileSize) / 2)
-
-    // Add jitter so photos aren't perfectly aligned
-    const jitterX = Math.sin(seed) * 30
-    const jitterY = Math.cos(seed) * 30
-    const rotation = Math.sin(seed * 2.3) * 6  // ±6 degrees
-
-    layouts.push({
-      x:        baseX + jitterX,
-      y:        baseY + jitterY,
-      size:     tileSize + Math.sin(seed * 1.7) * 30,
-      rotation,
-    })
-  }
-
-  return layouts
-}
-
-function drawTile(ctx, img, { x, y, size, rotation }) {
+function drawGridTile(ctx, img, x, y, w, h) {
   ctx.save()
-
-  // Move to center of tile, rotate, then draw
-  ctx.translate(x + size / 2, y + size / 2)
-  ctx.rotate((rotation * Math.PI) / 180)
-
-  // Drop shadow
-  ctx.shadowColor   = 'rgba(0,0,0,0.25)'
-  ctx.shadowBlur    = 20
-  ctx.shadowOffsetX = 4
-  ctx.shadowOffsetY = 6
-
-  // Rounded rect clip
-  roundedRect(ctx, -size / 2, -size / 2, size, size, 16)
+  
+  // Create clipping path for the grid cell
+  ctx.beginPath()
+  ctx.rect(x, y, w, h)
   ctx.clip()
 
-  ctx.shadowColor = 'transparent'  // reset shadow inside clip
-
-  // Draw image centered & cropped to square
-  const scale = Math.max(size / img.naturalWidth, size / img.naturalHeight)
-  const sw    = img.naturalWidth * scale
-  const sh    = img.naturalHeight * scale
-  ctx.drawImage(img, -sw / 2, -sh / 2, sw, sh)
-
-  // Subtle border
-  ctx.strokeStyle = 'rgba(61,78,26,0.6)'
-  ctx.lineWidth   = 3
-  roundedRect(ctx, -size / 2, -size / 2, size, size, 16)
-  ctx.stroke()
-
+  // Calculate scaling to cover the cell (object-fit: cover)
+  const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight)
+  const sw = img.naturalWidth * scale
+  const sh = img.naturalHeight * scale
+  
+  // Center image
+  const dx = x + (w - sw) / 2
+  const dy = y + (h - sh) / 2
+  
+  ctx.drawImage(img, dx, dy, sw, sh)
   ctx.restore()
 }
 
 function drawPromptOverlay(ctx, promptName, promptColor) {
-  const y = CANVAS_SIZE - 100
+  const cx = CANVAS_WIDTH / 2
+  const cy = CANVAS_HEIGHT / 2
 
-  // Semi-transparent highlight band
-  const grad = ctx.createLinearGradient(0, y - 80, 0, CANVAS_SIZE)
-  grad.addColorStop(0, 'rgba(0,0,0,0)')
-  grad.addColorStop(1, 'rgba(0,0,0,0.55)')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, y - 80, CANVAS_SIZE, CANVAS_SIZE - y + 80)
+  ctx.save()
+  
+  // Start with a smaller base font size
+  let fontSize = 100;
+  ctx.font = `bold ${fontSize}px Georgia, "Times New Roman", serif`;
+  
+  // Scale down if text is too wide (leave 200px margin on each side)
+  const maxWidth = CANVAS_WIDTH - 400;
+  let textWidth = ctx.measureText(promptName).width;
+  
+  if (textWidth > maxWidth) {
+    fontSize = Math.floor(fontSize * (maxWidth / textWidth));
+    ctx.font = `bold ${fontSize}px Georgia, "Times New Roman", serif`;
+  }
 
-  // Prompt text
-  ctx.font         = 'bold 96px Nunito, sans-serif'
-  ctx.textAlign    = 'center'
+  ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle    = `${promptColor}CC`  // accent color, semi-transparent
-  ctx.fillText(promptName, CANVAS_SIZE / 2, y + 10)
+  
+  // 1. Draw dark shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'
+  ctx.fillText(promptName, cx + 5, cy + 8)
 
-  // Subtle white outline for legibility
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'
-  ctx.lineWidth   = 2
-  ctx.strokeText(promptName, CANVAS_SIZE / 2, y + 10)
-}
+  // 2. Draw white outline
+  ctx.strokeStyle = '#FFFFFF'
+  ctx.lineWidth = Math.max(4, Math.floor(fontSize * 0.08)) // scale outline with font
+  ctx.lineJoin = 'round'
+  ctx.strokeText(promptName, cx, cy)
+  
+  // 3. Draw inner colored fill
+  ctx.fillStyle = promptColor || '#4169E1'
+  ctx.fillText(promptName, cx, cy)
 
-function roundedRect(ctx, x, y, w, h, r) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y)
-  ctx.arcTo(x + w, y, x + w, y + r, r)
-  ctx.lineTo(x + w, y + h - r)
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-  ctx.lineTo(x + r, y + h)
-  ctx.arcTo(x, y + h, x, y + h - r, r)
-  ctx.lineTo(x, y + r)
-  ctx.arcTo(x, y, x + r, y, r)
-  ctx.closePath()
+  // Optional subtle inner thin border to match the aesthetic better
+  ctx.strokeStyle = '#000000'
+  ctx.lineWidth = 2
+  ctx.strokeText(promptName, cx, cy)
+
+  ctx.restore()
 }

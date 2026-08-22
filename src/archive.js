@@ -6,6 +6,9 @@ const sheetEl        = document.getElementById('archive-sheet')
 const handleEl       = document.getElementById('archive-handle')
 const toggleBtn      = document.getElementById('archive-toggle')
 const listEl         = document.getElementById('archive-list')
+const lightboxEl     = document.getElementById('collage-lightbox')
+const lightboxImg    = document.getElementById('collage-lightbox-img')
+const lightboxClose  = document.getElementById('collage-lightbox-close')
 
 let _isOpen      = false
 let _isDragging  = false
@@ -25,6 +28,8 @@ export function initArchive(quests) {
   if (!_listenersAttached) {
     setupGestures()
     setupToggleButton()
+    setupDownloadListener()
+    setupLightbox()
     _listenersAttached = true
   }
 }
@@ -67,13 +72,27 @@ function renderArchiveList(quests) {
           <div class="archive-card__week">${weekLabel}</div>
           <div class="archive-card__prompt">${quest.prompt_name}</div>
         </div>
+        ${hasCollage ? `
+        <button class="archive-card__download-btn" data-url="${quest.collage_url}" data-filename="${quest.prompt_name} Collage.jpg" aria-label="Download collage" title="Download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+        ` : ''}
       </div>
       ${hasCollage
         ? `<img
-            class="archive-card__collage"
+            class="archive-card__collage archive-card__collage--clickable"
             src="${quest.collage_url}"
             alt="Group collage for ${weekLabel}: ${quest.prompt_name}"
+            data-lightbox-src="${quest.collage_url}"
+            data-lightbox-alt="${weekLabel}: ${quest.prompt_name}"
             loading="lazy"
+            role="button"
+            tabindex="0"
+            title="View full size"
           />`
         : `<div class="archive-card__collage-placeholder">Collage coming soon…</div>`
       }
@@ -83,7 +102,89 @@ function renderArchiveList(quests) {
   }
 }
 
-// ── Gestures ─────────────────────────────────────────────────
+// ── Lightbox ─────────────────────────────────────────────────
+
+function openLightbox(src, alt) {
+  lightboxImg.src = src
+  lightboxImg.alt = alt || 'Collage'
+  lightboxEl.removeAttribute('hidden')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeLightbox() {
+  lightboxEl.setAttribute('hidden', '')
+  lightboxImg.src = ''
+  // Restore scroll only if archive is also closed
+  if (!_isOpen) document.body.style.overflow = ''
+}
+
+function setupLightbox() {
+  // Click on a collage image → open lightbox
+  listEl.addEventListener('click', (e) => {
+    const img = e.target.closest('.archive-card__collage--clickable')
+    if (!img) return
+    e.stopPropagation()
+    openLightbox(img.dataset.lightboxSrc, img.dataset.lightboxAlt)
+  })
+
+  // Keyboard access (Enter / Space) on collage images
+  listEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const img = e.target.closest('.archive-card__collage--clickable')
+    if (!img) return
+    e.preventDefault()
+    openLightbox(img.dataset.lightboxSrc, img.dataset.lightboxAlt)
+  })
+
+  // Close via × button
+  lightboxClose.addEventListener('click', closeLightbox)
+
+  // Close by clicking the backdrop (but NOT the image itself)
+  lightboxEl.addEventListener('click', (e) => {
+    if (e.target === lightboxEl) closeLightbox()
+  })
+
+  // Close with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !lightboxEl.hasAttribute('hidden')) closeLightbox()
+  })
+}
+
+// ── Gestures & Actions ────────────────────────────────────────
+
+function setupDownloadListener() {
+  listEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.archive-card__download-btn')
+    if (!btn) return
+    
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const url = btn.dataset.url
+    const filename = btn.dataset.filename
+    if (!url) return
+    
+    try {
+      btn.style.opacity = '0.5' // visual feedback
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename || 'collage.jpg'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+      btn.style.opacity = '1'
+    } catch (err) {
+      console.error('[archive] Download failed:', err)
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+      btn.style.opacity = '1'
+    }
+  })
+}
 
 function setupGestures() {
   // Touch/pointer drag on handle

@@ -12,6 +12,7 @@
     "vite": "^8.2.0"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-web": "^0.79.2",
     "@supabase/supabase-js": "^2.112.3"
   }
 }

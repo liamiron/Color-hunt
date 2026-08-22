@@ -20,13 +20,21 @@
 <body>
 
   <!-- ══════════════════════════════════════
+         MAIN LOADING OVERLAY — Lottie animation
+    ══════════════════════════════════════ -->
+  <div id="main-loader" class="main-loader" aria-hidden="true">
+    <canvas id="main-loader-canvas" class="main-loader__canvas"></canvas>
+  </div>
+
+  <!-- ══════════════════════════════════════
          HEADER — prompt text only (per PRD)
     ══════════════════════════════════════ -->
   <header id="header" class="header">
     <div class="header__inner">
       <div class="header__pill-wrap">
         <h1 id="prompt-text" class="header__prompt">
-          <span class="highlight" id="prompt-highlight">TARGET: LEMON YELLOW</span>
+          <span class="highlight" id="prompt-highlight" hidden>TARGET: LEMON YELLOW</span>
+        <div class="skeleton-pill" id="prompt-skeleton"></div>
         </h1>
         <p id="quest-countdown" class="quest-countdown" aria-live="polite">
           <span class="quest-countdown__label">Ends in:</span>
@@ -42,8 +50,18 @@
   <main id="main" class="main">
     <!-- Loading state -->
     <div id="grid-loading" class="grid-loading" aria-live="polite">
-      <div class="spinner"></div>
-      <p>Loading your quest…</p>
+      <!-- Skeleton 3×3 grid -->
+      <div class="skeleton-grid">
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+      </div>
     </div>
 
     <!-- The 3×3 grid -->
@@ -61,7 +79,7 @@
   <!-- ══════════════════════════════════════
          FAB — floating add button
     ══════════════════════════════════════ -->
-  <button id="fab-btn" class="fab" aria-label="Add a photo to your grid">
+  <button id="fab-btn" class="fab" aria-label="Add a photo to your grid" hidden>
     <svg class="fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
       stroke-linecap="round">
       <line x1="12" y1="5" x2="12" y2="19" />
@@ -108,6 +126,19 @@
       <!-- Rendered by JS -->
     </div>
   </aside>
+
+  <!-- ══════════════════════════════════════
+         COLLAGE LIGHTBOX
+    ══════════════════════════════════════ -->
+  <div id="collage-lightbox" class="collage-lightbox" hidden role="dialog" aria-modal="true" aria-label="Collage viewer">
+    <button id="collage-lightbox-close" class="collage-lightbox__close" aria-label="Close collage viewer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+    <img id="collage-lightbox-img" class="collage-lightbox__img" src="" alt="Collage full view" />
+  </div>
 
   <!-- Toast notification -->
   <div id="toast" class="toast" aria-live="assertive" hidden></div>

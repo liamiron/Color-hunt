@@ -5,25 +5,46 @@
  * weekly-reset check → visibility refresh listener
  */
 
+import { DotLottie } from '@lottiefiles/dotlottie-web'
 import { getDeviceId, loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } from './state.js'
 import { applyAccentColor } from './prompts.js'
 import { initGrid, updateGridPhotos } from './grid.js'
 import { initArchive, updateArchive } from './archive.js'
 import { checkAndReset, setupDevReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
 
-// ── DOM refs ──────────────────────────────────────────────────
-const promptHighlight = document.getElementById('prompt-highlight')
-const gridLoadingEl   = document.getElementById('grid-loading')
-const photoGridEl     = document.getElementById('photo-grid')
-const questLockedEl   = document.getElementById('quest-locked')
+// ── DOM refs ────────────────────────────────────────────────────
+const promptHighlight  = document.getElementById('prompt-highlight')
+const promptSkeleton   = document.getElementById('prompt-skeleton')
+const gridLoadingEl    = document.getElementById('grid-loading')
+const photoGridEl      = document.getElementById('photo-grid')
+const questLockedEl    = document.getElementById('quest-locked')
 const countdownEl      = document.getElementById('quest-countdown')
 const countdownValueEl = document.getElementById('countdown-value')
+const mainLoaderEl     = document.getElementById('main-loader')
+const mainLoaderCanvas = document.getElementById('main-loader-canvas')
 
 // ── App State ─────────────────────────────────────────────────
 let _deviceId   = null
 let _activeQuest = null
 
 // ── Bootstrap ─────────────────────────────────────────────────
+
+// Start the Lottie animation immediately so the overlay is animated
+const _dotLottie = new DotLottie({
+  canvas: mainLoaderCanvas,
+  src: '/src/assets/main-loading-animation.lottie',
+  loop: true,
+  autoplay: true,
+})
+
+function hideMainLoader() {
+  mainLoaderEl.classList.add('main-loader--hidden')
+  // Remove from DOM after fade completes so it can't block interactions
+  mainLoaderEl.addEventListener('transitionend', () => {
+    mainLoaderEl.remove()
+    _dotLottie.destroy()
+  }, { once: true })
+}
 
 async function init() {
   showLoading(true)
@@ -34,6 +55,8 @@ async function init() {
   } catch (err) {
     console.error('[main] init error:', err)
     showError(err)
+  } finally {
+    hideMainLoader()
   }
 
   // Re-fetch when user returns to the tab (replaces Realtime)
@@ -70,6 +93,11 @@ async function loadAndRender(silent = false) {
 
   // 3. Apply prompt accent color to the whole UI
   applyAccentColor(quest.prompt_color)
+
+  // Reveal accent-coloured elements now that the real color is set —
+  // they were hidden in HTML to prevent a yellow flash on first paint.
+  const fabEl = document.getElementById('fab-btn')
+  if (fabEl) fabEl.removeAttribute('hidden')
 
   // 4. Update header + start countdown
   promptHighlight.textContent = `TARGET: ${quest.prompt_name}`
@@ -110,6 +138,11 @@ function showLoading(show) {
   gridLoadingEl.hidden  = !show
   photoGridEl.hidden    = show
   if (questLockedEl) questLockedEl.hidden = true
+  // Swap header: skeleton pill while loading, real highlight once loaded
+  if (promptSkeleton)   promptSkeleton.hidden  = !show
+  if (promptHighlight)  promptHighlight.hidden  = show
+  // Hide countdown badge while loading
+  if (countdownEl) countdownEl.style.visibility = show ? 'hidden' : 'visible'
 }
 
 function showError(err) {

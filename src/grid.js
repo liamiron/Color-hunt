@@ -259,6 +259,13 @@ function setupDeleteButtons() {
     deleteTooltip.hidden = true
     _deleteSlotIndex = null
   })
+
+  document.addEventListener('pointerdown', (e) => {
+    if (!deleteTooltip.hidden && !deleteTooltip.contains(e.target)) {
+      deleteTooltip.hidden = true
+      _deleteSlotIndex = null
+    }
+  })
 }
 
 async function deletePhoto(slotIndex) {

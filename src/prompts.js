@@ -45,11 +45,11 @@ export const PROMPTS = [
   { name: 'MIDNIGHT NAVY', color: '#1E3A5F' },
 
   // ── Cyans & Teals ───────────────────────────────────────────
-  { name: 'TURQUOISE', color: '#22D3EE' },
+  { name: 'TURQUOISE', color: '#38bdd1' },
   { name: 'TEAL BLUE', color: '#0D9488' },
 
   // ── Greens ──────────────────────────────────────────────────
-  { name: 'MINT GREEN', color: '#34D399' },
+  { name: 'MINT GREEN', color: '#2eb483' },
   { name: 'LIME GREEN', color: '#84CC16' },
   { name: 'SAGE GREEN', color: '#7BAF72' },
   { name: 'FOREST GREEN', color: '#166534' },
