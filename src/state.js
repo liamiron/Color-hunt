@@ -1,9 +1,8 @@
 import { supabase } from './supabase.js'
 
-const DEFAULT_GROUP_ID = '00000000-0000-0000-0000-000000000001'
-const DEVICE_ID_KEY    = 'ch_device_id'
+const DEVICE_ID_KEY = 'ch_device_id'
 
-// ── Device Identity ──────────────────────────────────────────
+// ── Device Identity (legacy — kept for prototype photo paths) ─
 
 /**
  * Returns a stable device UUID from localStorage.
@@ -28,17 +27,65 @@ export function getDeviceId() {
   return id
 }
 
-// ── Data Loading ─────────────────────────────────────────────
+// ── User Profile ──────────────────────────────────────────────
 
 /**
- * Loads the currently active quest for the default group.
+ * Fetches the user's profile (including joined group info).
+ * Returns null if no profile row exists yet.
+ * @param {string} userId  — from auth.uid()
  * @returns {Promise<object|null>}
  */
-export async function loadActiveQuest() {
+export async function getUserProfile(userId) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*, groups(id, invite_code, name)')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[state] getUserProfile error:', error)
+    return null
+  }
+  return data
+}
+
+/**
+ * Ensures a user_profiles row exists for this user.
+ * Creates one (with no group) if missing.
+ * @param {string} userId
+ * @returns {Promise<object|null>}
+ */
+export async function ensureUserProfile(userId) {
+  // Try fetching first
+  let profile = await getUserProfile(userId)
+  if (profile) return profile
+
+  // Create a blank profile
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .insert({ user_id: userId })
+    .select('*, groups(id, invite_code, name)')
+    .single()
+
+  if (error) {
+    console.error('[state] ensureUserProfile error:', error)
+    return null
+  }
+  return data
+}
+
+// ── Data Loading ──────────────────────────────────────────────
+
+/**
+ * Loads the currently active quest for the given group.
+ * @param {string} groupId
+ * @returns {Promise<object|null>}
+ */
+export async function loadActiveQuest(groupId) {
   const { data, error } = await supabase
     .from('quests')
     .select('*')
-    .eq('group_id', DEFAULT_GROUP_ID)
+    .eq('group_id', groupId)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -93,13 +140,14 @@ export async function loadAllQuestPhotos(questId) {
 
 /**
  * Loads all completed quests for the archive, newest first.
+ * @param {string} groupId
  * @returns {Promise<object[]>}
  */
-export async function loadArchive() {
+export async function loadArchive(groupId) {
   const { data, error } = await supabase
     .from('quests')
     .select('*')
-    .eq('group_id', DEFAULT_GROUP_ID)
+    .eq('group_id', groupId)
     .eq('is_active', false)
     .order('week_number', { ascending: false })
 

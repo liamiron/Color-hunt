@@ -27,120 +27,206 @@
   </div>
 
   <!-- ══════════════════════════════════════
-         HEADER — prompt text only (per PRD)
+         SCREEN: AUTH (Epic 4)
     ══════════════════════════════════════ -->
-  <header id="header" class="header">
-    <div class="header__inner">
-      <div class="header__pill-wrap">
-        <h1 id="prompt-text" class="header__prompt">
-          <span class="highlight" id="prompt-highlight" hidden>TARGET: LEMON YELLOW</span>
-        <div class="skeleton-pill" id="prompt-skeleton"></div>
+  <section id="screen-auth" class="screen screen--auth" hidden>
+    <div class="auth-card">
+
+      <!-- App title -->
+      <div class="auth-card__brand">
+        <h1 class="auth-card__title">
+          <span class="highlight auth-highlight">COLOR HUNT</span>
         </h1>
-        <p id="quest-countdown" class="quest-countdown" aria-live="polite">
-          <span class="quest-countdown__label">Ends in:</span>
-          <span id="countdown-value">—</span>
-        </p>
+        <p class="auth-card__tagline">Find. Shoot. Share.</p>
       </div>
-    </div>
-  </header>
 
-  <!-- ══════════════════════════════════════
-         MAIN — personal 3×3 photo grid
-    ══════════════════════════════════════ -->
-  <main id="main" class="main">
-    <!-- Loading state -->
-    <div id="grid-loading" class="grid-loading" aria-live="polite">
-      <!-- Skeleton 3×3 grid -->
-      <div class="skeleton-grid">
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
-        <div class="skeleton-cell"></div>
+      <div id="auth-social-section" class="auth-social-section">
+        <div class="auth-social">
+          <button id="auth-google" class="auth-social__btn auth-social__btn--google">
+            <svg class="auth-social__icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <button id="auth-facebook" class="auth-social__btn auth-social__btn--facebook">
+            <svg class="auth-social__icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#1877F2" d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.02 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07" />
+            </svg>
+            Sign in with Facebook
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- The 3×3 grid -->
-    <div id="photo-grid" class="grid" role="grid" aria-label="Your 3×3 photo grid" hidden>
-      <!-- 9 slots rendered by JS -->
     </div>
-
-    <!-- Quest locked overlay (end of week, before reset) -->
-    <div id="quest-locked" class="quest-locked" hidden>
-      <div class="quest-locked__icon">🔒</div>
-      <p class="quest-locked__text">Quest closed — collage being generated…</p>
-    </div>
-  </main>
+  </section>
 
   <!-- ══════════════════════════════════════
-         FAB — floating add button
+         SCREEN: GROUP — "Find Your Pack" (Epic 5)
     ══════════════════════════════════════ -->
-  <button id="fab-btn" class="fab" aria-label="Add a photo to your grid" hidden>
-    <svg class="fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-      stroke-linecap="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  </button>
+  <section id="screen-group" class="screen screen--group" hidden>
 
-  <!-- Hidden file input -->
-  <input type="file" id="file-input" accept="image/*" hidden aria-hidden="true" />
-
-  <!-- Delete confirmation tooltip -->
-  <div id="delete-tooltip" class="delete-tooltip" hidden role="dialog" aria-label="Delete photo">
-    <p class="delete-tooltip__text">Remove this photo?</p>
-    <div class="delete-tooltip__actions">
-      <button id="delete-confirm" class="delete-tooltip__btn delete-tooltip__btn--confirm">Delete</button>
-      <button id="delete-cancel" class="delete-tooltip__btn delete-tooltip__btn--cancel">Cancel</button>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════
-         ARCHIVE — bottom sheet
-    ══════════════════════════════════════ -->
-  <aside id="archive-sheet" class="archive" aria-label="Archive of past quests">
-    <!-- Drag handle -->
-    <div id="archive-handle" class="archive__handle" role="button" tabindex="0" aria-label="Open archive">
-      <span class="archive__pill"></span>
-    </div>
-
-    <!-- Sheet header -->
-    <div class="archive__header">
-      <h2 class="archive__title">
-        <span class="highlight highlight--archive">Archive</span>
-      </h2>
-      <button id="archive-toggle" class="archive__chevron" aria-label="Toggle archive">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-          stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Scrollable archive list -->
-    <div id="archive-list" class="archive__list" role="list" aria-label="Past quests">
-      <!-- Rendered by JS -->
-    </div>
-  </aside>
-
-  <!-- ══════════════════════════════════════
-         COLLAGE LIGHTBOX
-    ══════════════════════════════════════ -->
-  <div id="collage-lightbox" class="collage-lightbox" hidden role="dialog" aria-modal="true" aria-label="Collage viewer">
-    <button id="collage-lightbox-close" class="collage-lightbox__close" aria-label="Close collage viewer">
+    <!-- Back arrow -->
+    <button id="group-back" class="screen__back" aria-label="Go back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
+        <polyline points="15 18 9 12 15 6" />
       </svg>
     </button>
-    <img id="collage-lightbox-img" class="collage-lightbox__img" src="" alt="Collage full view" />
-  </div>
 
-  <!-- Toast notification -->
+    <div class="group-screen__inner">
+
+      <h1 class="group-screen__title">
+        <span class="highlight">FIND YOUR PACK</span>
+      </h1>
+
+      <!-- Join card -->
+      <div class="group-card group-card--join">
+        <h2 class="group-card__heading">Join a Group</h2>
+        <p class="group-card__desc">Got an invite? Enter the Group ID below.</p>
+        <input id="group-code-input" type="text" placeholder="e.g. 1T530"
+               class="group-card__input" maxlength="10" autocomplete="off"
+               spellcheck="false" />
+        <button id="group-join-btn" class="group-card__btn group-card__btn--primary">JOIN</button>
+      </div>
+
+      <!-- Dashed divider -->
+      <div class="group-divider" aria-hidden="true">
+        <span class="group-divider__line"></span>
+        <span class="group-divider__label">or</span>
+        <span class="group-divider__line"></span>
+      </div>
+
+      <!-- Create card -->
+      <div class="group-card group-card--create">
+        <h2 class="group-card__heading">Start a New Group</h2>
+        <p class="group-card__desc">We'll give you a shareable code on the next screen.</p>
+        <button id="group-create-btn" class="group-card__btn group-card__btn--secondary">CREATE GROUP</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+         SCREEN: MAIN (existing experience)
+    ══════════════════════════════════════ -->
+  <div id="screen-main" hidden>
+
+    <!-- ── HEADER — prompt text + group ID ── -->
+    <header id="header" class="header">
+      <div class="header__inner">
+
+        <!-- Group ID chip (top-left, Epic 6) -->
+        <button id="group-id-display" class="header__group-id" aria-label="Copy Group ID" hidden>
+          <!-- Populated by JS -->
+        </button>
+
+        <div class="header__pill-wrap">
+          <h1 id="prompt-text" class="header__prompt">
+            <span class="highlight" id="prompt-highlight" hidden>TARGET: LEMON YELLOW</span>
+            <div class="skeleton-pill" id="prompt-skeleton"></div>
+          </h1>
+          <p id="quest-countdown" class="quest-countdown" aria-live="polite">
+            <span class="quest-countdown__label">Ends in:</span>
+            <span id="countdown-value">—</span>
+          </p>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ── MAIN — personal 3×3 photo grid ── -->
+    <main id="main" class="main">
+      <!-- Loading state -->
+      <div id="grid-loading" class="grid-loading" aria-live="polite">
+        <!-- Skeleton 3×3 grid -->
+        <div class="skeleton-grid">
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+        </div>
+      </div>
+
+      <!-- The 3×3 grid -->
+      <div id="photo-grid" class="grid" role="grid" aria-label="Your 3×3 photo grid" hidden>
+        <!-- 9 slots rendered by JS -->
+      </div>
+
+      <!-- Quest locked overlay (end of week, before reset) -->
+      <div id="quest-locked" class="quest-locked" hidden>
+        <div class="quest-locked__icon">🔒</div>
+        <p class="quest-locked__text">Quest closed — collage being generated…</p>
+      </div>
+    </main>
+
+    <!-- ── FAB — floating add button ── -->
+    <button id="fab-btn" class="fab" aria-label="Add a photo to your grid" hidden>
+      <svg class="fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    </button>
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept="image/*" hidden aria-hidden="true" />
+
+    <!-- Delete confirmation tooltip -->
+    <div id="delete-tooltip" class="delete-tooltip" hidden role="dialog" aria-label="Delete photo">
+      <p class="delete-tooltip__text">Remove this photo?</p>
+      <div class="delete-tooltip__actions">
+        <button id="delete-confirm" class="delete-tooltip__btn delete-tooltip__btn--confirm">Delete</button>
+        <button id="delete-cancel" class="delete-tooltip__btn delete-tooltip__btn--cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ── ARCHIVE — bottom sheet ── -->
+    <aside id="archive-sheet" class="archive" aria-label="Archive of past quests">
+      <!-- Drag handle -->
+      <div id="archive-handle" class="archive__handle" role="button" tabindex="0" aria-label="Open archive">
+        <span class="archive__pill"></span>
+      </div>
+
+      <!-- Sheet header -->
+      <div class="archive__header">
+        <h2 class="archive__title">
+          <span class="highlight highlight--archive">Archive</span>
+        </h2>
+        <button id="archive-toggle" class="archive__chevron" aria-label="Toggle archive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable archive list -->
+      <div id="archive-list" class="archive__list" role="list" aria-label="Past quests">
+        <!-- Rendered by JS -->
+      </div>
+    </aside>
+
+    <!-- ── COLLAGE LIGHTBOX ── -->
+    <div id="collage-lightbox" class="collage-lightbox" hidden role="dialog" aria-modal="true" aria-label="Collage viewer">
+      <button id="collage-lightbox-close" class="collage-lightbox__close" aria-label="Close collage viewer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <img id="collage-lightbox-img" class="collage-lightbox__img" src="" alt="Collage full view" />
+    </div>
+
+  </div><!-- /#screen-main -->
+
+  <!-- Toast notification (shared across all screens) -->
   <div id="toast" class="toast" aria-live="assertive" hidden></div>
 
   <script type="module" src="/src/main.js"></script>

@@ -7,6 +7,15 @@
 CREATE TABLE IF NOT EXISTS groups (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL DEFAULT 'Default Group',
+  invite_code TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User-group membership (one row per authenticated user)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL UNIQUE,  -- from auth.uid()
+  group_id UUID REFERENCES groups(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -41,17 +50,20 @@ CREATE TABLE IF NOT EXISTS photos (
 CREATE INDEX IF NOT EXISTS idx_quests_group_active ON quests(group_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_photos_quest_device ON photos(quest_id, device_id);
 CREATE INDEX IF NOT EXISTS idx_photos_quest ON photos(quest_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user ON user_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_group ON user_profiles(group_id);
 
 -- Enable Row Level Security
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================
 -- Seed Data — default group + first quest
 -- =============================================================
-INSERT INTO groups (id, name)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Default Group')
+INSERT INTO groups (id, name, invite_code)
+VALUES ('00000000-0000-0000-0000-000000000001', 'Default Group', 'DEFAULT')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO quests (group_id, week_number, prompt_name, prompt_color)

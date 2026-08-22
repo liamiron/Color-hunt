@@ -75,3 +75,46 @@ To find your LAN IP on Windows:
 ipconfig
 # Look for "IPv4 Address" under your Wi-Fi adapter
 ```
+
+---
+
+## 8. Configure Social Auth (Google & Facebook)
+
+To allow users to sign in with Google or Apple, you must configure the OAuth providers in Supabase. The front-end code is already wired up to use them.
+
+### Google Setup
+
+1. **Get Google Credentials:**
+   - Go to the [Google Cloud Console](https://console.cloud.google.com/).
+   - Create a new project or select an existing one.
+   - Go to **APIs & Services** > **OAuth consent screen** and configure it (choose "External" if you don't have a Google Workspace).
+   - Go to **Credentials**, click **Create Credentials** > **OAuth client ID**.
+   - Application type: **Web application**.
+   - Authorized JavaScript origins: Add your app's base URL (e.g., `http://localhost:5173` for dev, and your production URL).
+   - Authorized redirect URIs: Add your Supabase project's redirect URL. You can find this in Supabase: **Authentication** > **URL Configuration** > **Site URL** (e.g., `https://xxxx.supabase.co/auth/v1/callback`).
+   - Copy the **Client ID** and **Client Secret**.
+
+2. **Configure Supabase:**
+   - Go to your Supabase Dashboard.
+   - Navigate to **Authentication** > **Providers**.
+   - Click on **Google** and enable it.
+   - Paste the **Client ID** and **Client Secret**.
+   - Click **Save**.
+
+### Facebook (Meta) Setup
+
+1. **Get Facebook Credentials:**
+   - Go to the [Meta for Developers](https://developers.facebook.com/) portal.
+   - Click **My Apps** and create a new App (type: "Allow people to log in with their Facebook account").
+   - Go to **App Settings** > **Basic**.
+   - Copy your **App ID** (Client ID) and **App Secret** (Client Secret).
+   - In the left sidebar, add the **Facebook Login** product to your app.
+   - Under **Facebook Login** > **Settings**, add your Supabase Return URL to the **Valid OAuth Redirect URIs** (e.g., `https://xxxx.supabase.co/auth/v1/callback`).
+   - Save your changes.
+
+2. **Configure Supabase:**
+   - Go to your Supabase Dashboard.
+   - Navigate to **Authentication** > **Providers**.
+   - Click on **Facebook** and enable it.
+   - Paste the **App ID** as the Client ID, and **App Secret** as the Client Secret.
+   - Click **Save**.

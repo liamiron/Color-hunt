@@ -5,7 +5,7 @@ import { showToast } from './ui.js'
 const TILTS = [-2, 1, -1.5, 0.5, -1, 2, -0.5, 1.5, -1]
 
 let _questId = null
-let _deviceId = null
+let _userId = null
 let _photos = []     // array length 9, null = empty
 let _isLocked = false  // quest locked (end-of-week)
 let _pendingSlot = null  // which slot the user clicked
@@ -21,13 +21,13 @@ const deleteCancel = document.getElementById('delete-cancel')
 /**
  * Initialise the grid controller.
  * @param {string} questId
- * @param {string} deviceId
+ * @param {string} userId
  * @param {object[]} photos  — from loadMyPhotos()
  * @param {boolean} isLocked
  */
-export function initGrid(questId, deviceId, photos, isLocked = false) {
+export function initGrid(questId, userId, photos, isLocked = false) {
   _questId = questId
-  _deviceId = deviceId
+  _userId = userId
   _isLocked = isLocked
 
   // Build a 9-slot array (index = slot_index)
@@ -155,7 +155,7 @@ async function uploadPhoto(file, slotIndex) {
     const blob = await resizeImage(file, 1200)
 
     // 2. Upload to Supabase Storage
-    const storagePath = `${_questId}/${_deviceId}/${slotIndex}.jpg`
+    const storagePath = `${_questId}/${_userId}/${slotIndex}.jpg`
     const { error: uploadError } = await supabase.storage
       .from('photos')
       .upload(storagePath, blob, {
@@ -177,7 +177,7 @@ async function uploadPhoto(file, slotIndex) {
       .from('photos')
       .upsert({
         quest_id: _questId,
-        device_id: _deviceId,
+        device_id: _userId,
         slot_index: slotIndex,
         storage_path: storagePath,
         image_url: imageUrl,
@@ -186,7 +186,7 @@ async function uploadPhoto(file, slotIndex) {
     if (dbError) throw dbError
 
     // 5. Update local state + re-render
-    _photos[slotIndex] = { quest_id: _questId, device_id: _deviceId, slot_index: slotIndex, storage_path: storagePath, image_url: imageUrl }
+    _photos[slotIndex] = { quest_id: _questId, device_id: _userId, slot_index: slotIndex, storage_path: storagePath, image_url: imageUrl }
     renderGrid()
 
     // Apply pop-in animation to the newly filled slot
@@ -278,7 +278,7 @@ async function deletePhoto(slotIndex) {
       .from('photos')
       .delete()
       .eq('quest_id', _questId)
-      .eq('device_id', _deviceId)
+      .eq('device_id', _userId)
       .eq('slot_index', slotIndex)
 
     if (error) throw error

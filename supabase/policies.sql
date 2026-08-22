@@ -4,9 +4,24 @@
 -- =============================================================
 
 -- ── groups ──────────────────────────────────────────────────
--- Anyone can read groups
+-- Anyone can read groups (needed to look up by invite_code)
 CREATE POLICY "groups_select_all" ON groups
   FOR SELECT USING (true);
+
+-- Authenticated users can create groups
+CREATE POLICY "groups_insert_auth" ON groups
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ── user_profiles ────────────────────────────────────────────
+-- Users can read/write their own profile row only
+CREATE POLICY "profiles_select_own" ON user_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "profiles_insert_own" ON user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "profiles_update_own" ON user_profiles
+  FOR UPDATE USING (auth.uid() = user_id);
 
 -- ── quests ──────────────────────────────────────────────────
 -- Anyone can read quests
@@ -50,14 +65,18 @@ VALUES ('photos', 'photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Allow all operations on photos bucket (prototype mode)
+DROP POLICY IF EXISTS "storage_photos_select" ON storage.objects;
 CREATE POLICY "storage_photos_select" ON storage.objects
   FOR SELECT USING (bucket_id = 'photos');
 
+DROP POLICY IF EXISTS "storage_photos_insert" ON storage.objects;
 CREATE POLICY "storage_photos_insert" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'photos');
 
+DROP POLICY IF EXISTS "storage_photos_update" ON storage.objects;
 CREATE POLICY "storage_photos_update" ON storage.objects
   FOR UPDATE USING (bucket_id = 'photos');
 
+DROP POLICY IF EXISTS "storage_photos_delete" ON storage.objects;
 CREATE POLICY "storage_photos_delete" ON storage.objects
   FOR DELETE USING (bucket_id = 'photos');

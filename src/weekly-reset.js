@@ -4,7 +4,6 @@ import { pickNextPrompt } from './prompts.js'
 import { generateAndUploadCollage } from './collage.js'
 import { showToast } from './ui.js'
 
-const DEFAULT_GROUP_ID = '00000000-0000-0000-0000-000000000001'
 const DEV_TRIPLE_TAP_LIMIT = 2000  // ms window for triple-tap
 
 let _devTapCount = 0
@@ -69,7 +68,7 @@ export async function checkAndReset(quest) {
 
   if (Date.now() >= resetTime.getTime()) {
     console.log(`[weekly-reset] Reset time reached: ${resetTime.toISOString()}`)
-    return await performReset(quest, resetTime)
+    return await performReset(quest, resetTime, quest.group_id)
   }
 
   return false
@@ -102,7 +101,7 @@ export function setupDevReset(quest, onReset) {
 
 // ── Reset Flow ────────────────────────────────────────────────
 
-async function performReset(quest, resetTime) {
+async function performReset(quest, resetTime, groupId) {
   console.log('[weekly-reset] Performing weekly reset for quest:', quest.id)
   showToast('Week ending — generating collage…', 6000)
 
@@ -155,14 +154,14 @@ async function performReset(quest, resetTime) {
   }
 
   // Step 3: Determine next prompt — avoid all previously used names
-  const usedNames = await loadUsedPromptNames()
+  const usedNames = await loadUsedPromptNames(groupId)
   const nextPrompt = pickNextPrompt(usedNames)
 
   // Step 4: Create the new quest, starting at the exact reset time (Sunday midnight)
   const { error: createError } = await supabase
     .from('quests')
     .insert({
-      group_id:     DEFAULT_GROUP_ID,
+      group_id:     groupId,
       week_number:  quest.week_number + 1,
       prompt_name:  nextPrompt.name,
       prompt_color: nextPrompt.color,
@@ -185,13 +184,14 @@ async function performReset(quest, resetTime) {
 /**
  * Loads all prompt names that have been used in past or current quests,
  * so the next prompt selection can avoid repeats.
+ * @param {string} groupId
  * @returns {Promise<string[]>}
  */
-async function loadUsedPromptNames() {
+async function loadUsedPromptNames(groupId) {
   const { data, error } = await supabase
     .from('quests')
     .select('prompt_name')
-    .eq('group_id', DEFAULT_GROUP_ID)
+    .eq('group_id', groupId)
     .order('week_number', { ascending: true })
 
   if (error) {
