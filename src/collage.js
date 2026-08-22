@@ -1,9 +1,9 @@
 import { supabase } from './supabase.js'
 import { loadAllQuestPhotos } from './state.js'
 
-const CANVAS_WIDTH  = 1080
+const CANVAS_WIDTH = 1080
 const CANVAS_HEIGHT = 1920
-const GAP           = 0   // px gap between tiles
+const GAP = 0   // px gap between tiles
 
 /**
  * Generates an artistic mosaic collage from all group photos,
@@ -52,7 +52,7 @@ async function loadImages(urls) {
     urls.map(url => new Promise((resolve, reject) => {
       const img = new Image()
       img.crossOrigin = 'anonymous'
-      img.onload  = () => resolve(img)
+      img.onload = () => resolve(img)
       img.onerror = () => reject(new Error(`Failed: ${url}`))
       img.src = url
     }))
@@ -114,7 +114,7 @@ function partitionIntoRows(images, numRows) {
   const n = images.length
 
   if (numRows === 1) return [images]
-  if (numRows >= n)  return images.map(img => [img])
+  if (numRows >= n) return images.map(img => [img])
 
   // Usable width (subtract gaps between columns; they're per-row)
   const usableW = CANVAS_WIDTH - GAP * (n - 1)  // rough upper bound
@@ -127,7 +127,7 @@ function partitionIntoRows(images, numRows) {
 
   // DP table:  dp[i][r] = min cost to place first i images into r rows
   const INF = 1e18
-  const dp    = Array.from({ length: n + 1 }, () => new Array(numRows + 1).fill(INF))
+  const dp = Array.from({ length: n + 1 }, () => new Array(numRows + 1).fill(INF))
   const split = Array.from({ length: n + 1 }, () => new Array(numRows + 1).fill(0))
 
   dp[0][0] = 0
@@ -172,13 +172,13 @@ function greedyPartition(images, numRows, targetH) {
   for (let idx = 0; idx < images.length; idx++) {
     const img = images[idx]
     const remaining = images.length - idx
-    const rowsLeft  = numRows - rows.length
+    const rowsLeft = numRows - rows.length
 
     current.push(img)
     currentSumAr += ar(img)
 
     const rW = CANVAS_WIDTH - GAP * (current.length - 1)
-    const h  = rW / currentSumAr
+    const h = rW / currentSumAr
 
     // Flush row if: row is full-height or we must finish to have enough rows
     const mustFlush = rowsLeft === remaining
@@ -214,18 +214,18 @@ function findOptimalRowCount(images) {
 
   const maxRows = Math.min(n, Math.ceil(Math.sqrt(n) * 1.8))
   let bestCount = 1
-  let bestCost  = Infinity
+  let bestCost = Infinity
 
   for (let r = 1; r <= maxRows; r++) {
     const partition = partitionIntoRows(images, r)
-    const targetH   = CANVAS_HEIGHT / r
-    let totalCost   = 0
+    const targetH = CANVAS_HEIGHT / r
+    let totalCost = 0
     for (const row of partition) {
       const rW = CANVAS_WIDTH - GAP * (row.length - 1)
       totalCost += rowCost(row, targetH, rW)
     }
     if (totalCost < bestCost) {
-      bestCost  = totalCost
+      bestCost = totalCost
       bestCount = r
     }
   }
@@ -238,7 +238,7 @@ function findOptimalRowCount(images) {
 async function renderCollage(images, promptName, promptColor) {
   return new Promise(resolve => {
     const canvas = document.createElement('canvas')
-    canvas.width  = CANVAS_WIDTH
+    canvas.width = CANVAS_WIDTH
     canvas.height = CANVAS_HEIGHT
     const ctx = canvas.getContext('2d')
 
@@ -247,7 +247,7 @@ async function renderCollage(images, promptName, promptColor) {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
     // ── 1. Find the best row count ────────────────────────────
-    const numRows  = findOptimalRowCount(images)
+    const numRows = findOptimalRowCount(images)
     const partition = partitionIntoRows(images, numRows)
 
     // ── 2. Calculate each row's actual height ─────────────────
@@ -255,21 +255,22 @@ async function renderCollage(images, promptName, promptColor) {
     // width, then scale all row heights so they sum to CANVAS_HEIGHT.
     const naturalHeights = partition.map(rowImgs => {
       const sumAr = rowImgs.reduce((s, img) => s + ar(img), 0)
-      const rW    = CANVAS_WIDTH - GAP * (rowImgs.length - 1)
+      const rW = CANVAS_WIDTH - GAP * (rowImgs.length - 1)
       return rW / sumAr   // h = w / Σr
     })
 
     const totalNatural = naturalHeights.reduce((s, h) => s + h, 0)
     // Account for vertical gaps between rows
-    const totalGaps    = GAP * (partition.length - 1)
-    const scaleFactor  = (CANVAS_HEIGHT - totalGaps) / totalNatural
-    const rowHeights   = naturalHeights.map(h => h * scaleFactor)
+    const totalGaps = GAP * (partition.length - 1)
+    const scaleFactor = (CANVAS_HEIGHT - totalGaps) / totalNatural
+    const rowHeights = naturalHeights.map(h => h * scaleFactor)
 
-    // ── 3. Draw each row ──────────────────────────────────────
+    // ── 3. Draw each row, collecting seam y-positions ────────
     let y = 0
+    const seams = []   // y-positions of the boundaries between rows
     for (let r = 0; r < partition.length; r++) {
       const rowImgs = partition[r]
-      const rowH    = rowHeights[r]
+      const rowH = rowHeights[r]
 
       // Width of each image = proportional to its aspect ratio
       const sumAr = rowImgs.reduce((s, img) => s + ar(img), 0)
@@ -277,7 +278,7 @@ async function renderCollage(images, promptName, promptColor) {
 
       let x = 0
       for (let c = 0; c < rowImgs.length; c++) {
-        const img  = rowImgs[c]
+        const img = rowImgs[c]
         const tileW = (ar(img) / sumAr) * usableW
 
         drawTile(ctx, img, x, y, tileW, rowH)
@@ -285,10 +286,13 @@ async function renderCollage(images, promptName, promptColor) {
       }
 
       y += rowH + GAP
+
+      // Record this seam (skip the very last one — that's the canvas edge)
+      if (r < partition.length - 1) seams.push(y - GAP)
     }
 
-    // ── 4. Overlay: prompt text in the middle ─────────────────
-    drawPromptOverlay(ctx, promptName, promptColor)
+    // ── 4. Overlay: prompt text snapped to nearest seam ───────
+    drawPromptOverlay(ctx, promptName, promptColor, seams)
 
     canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.90)
   })
@@ -310,8 +314,8 @@ function drawTile(ctx, img, x, y, w, h) {
 
   // Scale to cover the tile while preserving aspect ratio
   const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight)
-  const sw    = img.naturalWidth  * scale
-  const sh    = img.naturalHeight * scale
+  const sw = img.naturalWidth * scale
+  const sh = img.naturalHeight * scale
 
   // Centre the image within the tile
   const dx = x + (w - sw) / 2
@@ -323,46 +327,75 @@ function drawTile(ctx, img, x, y, w, h) {
 
 // ── Prompt Overlay ────────────────────────────────────────────
 
-function drawPromptOverlay(ctx, promptName, promptColor) {
-  const cx = CANVAS_WIDTH  / 2
-  const cy = CANVAS_HEIGHT / 2
+/**
+ * Draws the prompt text centred on the row seam nearest the canvas
+ * centre. If there are no seams (single-row layout) it falls back to
+ * the canvas midpoint. A translucent frosted band is drawn on the seam
+ * so the text has its own visual lane.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string}   promptName
+ * @param {string}   promptColor
+ * @param {number[]} seams  — y-coordinates of row boundaries
+ */
+function drawPromptOverlay(ctx, promptName, promptColor, seams = []) {
+  const cx = CANVAS_WIDTH / 2
+  const canvasMid = CANVAS_HEIGHT / 2
+
+  // Pick the seam closest to the canvas centre; fall back to midpoint
+  let seamY = canvasMid
+  if (seams.length > 0) {
+    seamY = seams.reduce((best, y) =>
+      Math.abs(y - canvasMid) < Math.abs(best - canvasMid) ? y : best
+      , seams[0])
+  }
 
   ctx.save()
 
-  // Start with a smaller base font size
-  let fontSize = 140
+  // ── Font sizing ───────────────────────────────────────────
+  let fontSize = 180
   ctx.font = `bold ${fontSize}px Georgia, "Times New Roman", serif`
 
-  // Scale down if text is too wide (leave 200px margin on each side)
-  const maxWidth = CANVAS_WIDTH - 400
-  let textWidth  = ctx.measureText(promptName).width
-
+  // Scale down if text is wider than the canvas minus generous margins
+  const maxWidth = CANVAS_WIDTH - 160
+  let textWidth = ctx.measureText(promptName).width
   if (textWidth > maxWidth) {
     fontSize = Math.floor(fontSize * (maxWidth / textWidth))
     ctx.font = `bold ${fontSize}px Georgia, "Times New Roman", serif`
   }
 
-  ctx.textAlign    = 'center'
+  // ── Frosted band centred on the seam ─────────────────────
+  const stripH = Math.round(fontSize * 1.55)
+  const stripY = seamY - stripH / 2
+
+  // Soft gradient: fully opaque at centre, fading to transparent at edges
+  const grad = ctx.createLinearGradient(0, stripY, 0, stripY + stripH)
+  grad.addColorStop(0, 'rgba(0,0,0,0)')
+  grad.addColorStop(0.18, 'rgba(0,0,0,0.52)')
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.62)')
+  grad.addColorStop(0.82, 'rgba(0,0,0,0.52)')
+  grad.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, stripY, CANVAS_WIDTH, stripH)
+
+  // ── Text on the seam ──────────────────────────────────────
+  ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  // 1. Draw dark shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.6)'
-  ctx.fillText(promptName, cx + 5, cy + 8)
-
-  // 2. Draw white outline
+  // 1. White outline for legibility
   ctx.strokeStyle = '#FFFFFF'
-  ctx.lineWidth   = Math.max(4, Math.floor(fontSize * 0.08))
-  ctx.lineJoin    = 'round'
-  ctx.strokeText(promptName, cx, cy)
+  ctx.lineWidth = Math.max(3, Math.floor(fontSize * 0.07))
+  ctx.lineJoin = 'round'
+  ctx.strokeText(promptName, cx, seamY)
 
-  // 3. Draw inner coloured fill
+  // 2. Coloured fill
   ctx.fillStyle = promptColor || '#4169E1'
-  ctx.fillText(promptName, cx, cy)
+  ctx.fillText(promptName, cx, seamY)
 
-  // 4. Subtle thin black border to crisp up edges
-  ctx.strokeStyle = '#000000'
-  ctx.lineWidth   = 2
-  ctx.strokeText(promptName, cx, cy)
+  // 3. Thin black edge to sharpen the letterforms
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)'
+  ctx.lineWidth = 1.5
+  ctx.strokeText(promptName, cx, seamY)
 
   ctx.restore()
 }

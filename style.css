@@ -507,7 +507,6 @@ img {
   position: fixed;
   z-index: 200;
   background: #FFFFFF;
-  border: 2px solid var(--ch-accent-dark);
   /* week-tinted border */
   border-radius: var(--ch-radius);
   padding: 14px 16px;
@@ -554,7 +553,6 @@ img {
 .delete-tooltip__btn--cancel {
   background: var(--ch-bg);
   color: var(--ch-text);
-  border: 1.5px solid var(--ch-accent-dark);
   /* week-tinted */
 }
 
@@ -703,7 +701,6 @@ img {
 .archive-card {
   border-radius: var(--ch-radius);
   overflow: clip;
-  border: 2px solid var(--ch-accent);
   /* week-tinted card border */
   background: var(--ch-bg-card);
   box-shadow: var(--ch-shadow);
