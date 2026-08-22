@@ -91,7 +91,7 @@ export function setupDevReset(quest, onReset) {
       _devTapCount = 0
       showToast('⚙️ Dev: forcing weekly reset…')
       // Use Date.now() as the "reset time" for dev purposes
-      performReset(quest, new Date()).then(onReset)
+      performReset(quest, new Date(), quest.group_id).then(onReset)
       return
     }
 
