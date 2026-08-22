@@ -46,8 +46,8 @@ CREATE POLICY "photos_select_all" ON photos
 CREATE POLICY "photos_insert_all" ON photos
   FOR INSERT WITH CHECK (true);
 
--- Users can only delete their own photos (matched by device_id header)
--- For prototype: allow all deletes since we check device_id in app logic
+-- Users can only delete their own photos
+-- For prototype: allow all deletes since we check user_id in app logic
 CREATE POLICY "photos_delete_own" ON photos
   FOR DELETE USING (true);
 

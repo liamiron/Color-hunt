@@ -7,7 +7,7 @@
  */
 
 import { DotLottie } from '@lottiefiles/dotlottie-web'
-import { getDeviceId, loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } from './state.js'
+import { loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } from './state.js'
 import { applyAccentColor } from './prompts.js'
 import { initGrid, updateGridPhotos } from './grid.js'
 import { initArchive, updateArchive } from './archive.js'
@@ -30,7 +30,7 @@ const mainLoaderCanvas = document.getElementById('main-loader-canvas')
 const groupIdDisplay   = document.getElementById('group-id-display')
 
 // ── App State ─────────────────────────────────────────────────
-let _deviceId    = null
+let _userId      = null
 let _activeQuest = null
 let _groupId     = null
 
@@ -70,8 +70,9 @@ initRouter(onMainReady).finally(() => {
  */
 async function onMainReady() {
   try {
-    _deviceId = getDeviceId()
-    _groupId  = getUserProfileCached()?.group_id || null
+    const profile = getUserProfileCached()
+    _userId = profile?.user_id
+    _groupId  = profile?.group_id || null
 
     if (!_groupId) {
       showError(new Error('No group assigned. Please reload and sign in again.'))
@@ -132,7 +133,7 @@ async function loadAndRender(silent = false) {
   startCountdown(quest.start_date)
 
   // 5. Load this user's photos
-  const photos = await loadMyPhotos(quest.id, _deviceId)
+  const photos = await loadMyPhotos(quest.id, _userId)
 
   // 6. Render grid
   showLoading(false)
@@ -141,7 +142,7 @@ async function loadAndRender(silent = false) {
     // Just update grid data without full re-init
     updateGridPhotos(photos)
   } else {
-    initGrid(quest.id, _deviceId, photos)
+    initGrid(quest.id, _userId, photos)
   }
 
   // 7. Load + render archive

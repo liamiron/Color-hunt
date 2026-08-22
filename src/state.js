@@ -1,31 +1,6 @@
 import { supabase } from './supabase.js'
 
-const DEVICE_ID_KEY = 'ch_device_id'
 
-// ── Device Identity (legacy — kept for prototype photo paths) ─
-
-/**
- * Returns a stable device UUID from localStorage.
- * Creates one on first visit.
- * @returns {string}
- */
-export function getDeviceId() {
-  let id = localStorage.getItem(DEVICE_ID_KEY)
-  if (!id) {
-    // crypto.randomUUID() requires a secure context (HTTPS / localhost).
-    // When accessed over LAN IP on mobile (plain HTTP), fall back to a
-    // Math.random()-based UUID v4 that works in any context.
-    id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0
-          const v = c === 'x' ? r : (r & 0x3 | 0x8)
-          return v.toString(16)
-        })
-    localStorage.setItem(DEVICE_ID_KEY, id)
-  }
-  return id
-}
 
 // ── User Profile ──────────────────────────────────────────────
 
@@ -101,15 +76,15 @@ export async function loadActiveQuest(groupId) {
 /**
  * Loads only the current user's photos for a given quest.
  * @param {string} questId
- * @param {string} deviceId
+ * @param {string} userId
  * @returns {Promise<object[]>}
  */
-export async function loadMyPhotos(questId, deviceId) {
+export async function loadMyPhotos(questId, userId) {
   const { data, error } = await supabase
     .from('photos')
     .select('*')
     .eq('quest_id', questId)
-    .eq('device_id', deviceId)
+    .eq('user_id', userId)
     .order('slot_index')
 
   if (error) {

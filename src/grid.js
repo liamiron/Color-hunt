@@ -177,16 +177,16 @@ async function uploadPhoto(file, slotIndex) {
       .from('photos')
       .upsert({
         quest_id: _questId,
-        device_id: _userId,
+        user_id: _userId,
         slot_index: slotIndex,
         storage_path: storagePath,
         image_url: imageUrl,
-      }, { onConflict: 'quest_id,device_id,slot_index' })
+      }, { onConflict: 'quest_id,user_id,slot_index' })
 
     if (dbError) throw dbError
 
     // 5. Update local state + re-render
-    _photos[slotIndex] = { quest_id: _questId, device_id: _userId, slot_index: slotIndex, storage_path: storagePath, image_url: imageUrl }
+    _photos[slotIndex] = { quest_id: _questId, user_id: _userId, slot_index: slotIndex, storage_path: storagePath, image_url: imageUrl }
     renderGrid()
 
     // Apply pop-in animation to the newly filled slot
@@ -278,7 +278,7 @@ async function deletePhoto(slotIndex) {
       .from('photos')
       .delete()
       .eq('quest_id', _questId)
-      .eq('device_id', _userId)
+      .eq('user_id', _userId)
       .eq('slot_index', slotIndex)
 
     if (error) throw error

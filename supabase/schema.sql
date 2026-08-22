@@ -37,18 +37,18 @@ CREATE TABLE IF NOT EXISTS quests (
 CREATE TABLE IF NOT EXISTS photos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   quest_id UUID REFERENCES quests(id) ON DELETE CASCADE NOT NULL,
-  device_id TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
   slot_index INT NOT NULL CHECK (slot_index >= 0 AND slot_index <= 8),
   storage_path TEXT NOT NULL,
   image_url TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   -- Each user can only have one photo per slot per quest
-  UNIQUE(quest_id, device_id, slot_index)
+  UNIQUE(quest_id, user_id, slot_index)
 );
 
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_quests_group_active ON quests(group_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_photos_quest_device ON photos(quest_id, device_id);
+CREATE INDEX IF NOT EXISTS idx_photos_quest_user ON photos(quest_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_photos_quest ON photos(quest_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_group ON user_profiles(group_id);
