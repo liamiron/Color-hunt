@@ -331,7 +331,7 @@ async function _renderAdminScreen() {
   if (groups.length === 0) {
     container.innerHTML = `
       <div class="admin-empty">
-        <div class="admin-empty__icon">🌐</div>
+        <div class="admin-empty__icon">${_icon('globe')}</div>
         <p class="admin-empty__text">No groups yet. Once people create groups, they'll appear here.</p>
       </div>
     `
@@ -364,26 +364,29 @@ function _buildGroupCard(group) {
       </div>
       <div class="admin-group-card__badges">
         <span class="admin-status-pill ${isClosed ? 'admin-status-pill--closed' : 'admin-status-pill--active'}">
-          ${isClosed ? '🔴 Closed' : '🟢 Active'}
+          ${isClosed
+            ? `<span class="admin-status-dot admin-status-dot--closed"></span> Closed`
+            : `<span class="admin-status-dot admin-status-dot--active"></span> Active`
+          }
         </span>
       </div>
     </div>
 
     <div class="admin-group-card__meta">
       <div class="admin-meta-item">
-        <span class="admin-meta-item__icon">👥</span>
+        <span class="admin-meta-item__icon">${_icon('users')}</span>
         <span>${group.memberCount} member${group.memberCount !== 1 ? 's' : ''}</span>
       </div>
       <div class="admin-meta-item">
-        <span class="admin-meta-item__icon" style="color:${color}">🎯</span>
+        <span class="admin-meta-item__icon" style="color:${color}">${_icon('target')}</span>
         <span>Week ${weekNum}: <strong>${_escHtml(prompt)}</strong></span>
       </div>
       <div class="admin-meta-item">
-        <span class="admin-meta-item__icon">📸</span>
+        <span class="admin-meta-item__icon">${_icon('camera')}</span>
         <span>${group.photoCount} photo${group.photoCount !== 1 ? 's' : ''} this week</span>
       </div>
       <div class="admin-meta-item">
-        <span class="admin-meta-item__icon">📅</span>
+        <span class="admin-meta-item__icon">${_icon('calendar')}</span>
         <span>${group.totalWeeks} week${group.totalWeeks !== 1 ? 's' : ''} total</span>
       </div>
     </div>
@@ -396,23 +399,23 @@ function _buildGroupCard(group) {
     </div>` : ''}
 
     <div class="admin-group-card__actions">
-      <button class="admin-btn admin-btn--blue" data-action="end-week" data-group-id="${group.id}" title="End this week now — generates collage and starts a new quest">
-        ⏭ End Week
+      <button class="admin-btn admin-btn--blue" data-action="end-week" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" title="End this week now — generates collage and starts a new quest">
+        ${_icon('skip-forward')} End Week
       </button>
       <button class="admin-btn admin-btn--orange" data-action="reset" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" title="Full reset — deletes ALL photos and history">
-        🔄 Reset
+        ${_icon('refresh')} Reset
       </button>
       ${isClosed
-        ? `<button class="admin-btn admin-btn--green" data-action="reopen" data-group-id="${group.id}">✅ Reopen</button>`
-        : `<button class="admin-btn admin-btn--grey" data-action="close" data-group-id="${group.id}">🚪 Close</button>`
+        ? `<button class="admin-btn admin-btn--green" data-action="reopen" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}">${_icon('unlock')} Reopen</button>`
+        : `<button class="admin-btn admin-btn--grey" data-action="close" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}">${_icon('lock')} Close</button>`
       }
       <button class="admin-btn admin-btn--red" data-action="delete" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" title="Permanently delete this group">
-        🗑 Delete
+        ${_icon('trash')} Delete
       </button>
     </div>
 
     <button class="admin-members-toggle" data-group-id="${group.id}">
-      <span>👥 View members</span>
+      <span>${_icon('users')} View members</span>
       <svg class="admin-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
     <div class="admin-members-list" id="members-${group.id}" hidden></div>
@@ -454,7 +457,7 @@ async function _renderMembersList(groupId, container) {
         <span class="admin-member-joined">Joined ${_formatDate(m.created_at)}</span>
       </div>
       <button class="admin-btn admin-btn--red admin-btn--sm" data-action="remove-member" data-user-id="${m.user_id}">
-        Remove
+        ${_icon('x')} Remove
       </button>
     </div>
   `).join('')
@@ -462,16 +465,22 @@ async function _renderMembersList(groupId, container) {
   container.querySelectorAll('[data-action="remove-member"]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const userId = btn.dataset.userId
-      if (!confirm('Remove this member from the group?')) return
-      try {
-        await removeMember(userId)
-        btn.closest('.admin-member-row').remove()
-        showToast('Member removed.')
-        // Refresh the card's member count display
-        await _refreshCard(groupId)
-      } catch {
-        showToast('❌ Failed to remove member.')
-      }
+      await _showDangerConfirm({
+        title: 'Remove Member',
+        message: 'This member will be removed from the group. They can rejoin with the group code.',
+        confirmLabel: 'Remove',
+        confirmClass: 'admin-danger-btn--red',
+        onConfirm: async () => {
+          try {
+            await removeMember(userId)
+            btn.closest('.admin-member-row').remove()
+            showToast('Member removed.')
+            await _refreshCard(groupId)
+          } catch {
+            showToast('Failed to remove member.')
+          }
+        }
+      })
     })
   })
 }
@@ -482,54 +491,70 @@ async function _handleAction(e, btn) {
   const groupName = btn.dataset.groupName || 'this group'
 
   if (action === 'end-week') {
-    if (!confirm(`End the current week for "${groupName}"?\nThis will generate a collage and start a new quest.`)) return
-    btn.disabled = true
-    btn.textContent = '⏳ Ending…'
-    await adminEndWeek(groupId)
-    await _refreshCard(groupId)
+    await _showDangerConfirm({
+      title: 'End Current Week',
+      message: `End the week for <strong>${_escHtml(groupName)}</strong>?<br><br>A collage will be generated from this week's photos and a new quest will begin.`,
+      confirmLabel: 'End Week',
+      confirmClass: 'admin-danger-btn--blue',
+      onConfirm: async () => {
+        showToast('Ending week… generating collage', 6000)
+        await adminEndWeek(groupId)
+        await _refreshCard(groupId)
+      }
+    })
 
   } else if (action === 'reset') {
     await _showDangerConfirm({
-      title: '⚠️ Reset Group',
+      title: 'Reset Group',
       message: `This will permanently delete ALL photos, collages, and quest history for <strong>${_escHtml(groupName)}</strong>.<br><br>A fresh Week 1 will start. This cannot be undone.`,
       confirmLabel: 'Reset Group',
       confirmClass: 'admin-danger-btn--orange',
-      groupName,
       onConfirm: async () => {
-        showToast('Resetting group… ⏳', 8000)
+        showToast('Resetting group…', 8000)
         await resetGroup(groupId)
-        showToast(`✅ "${groupName}" has been reset.`)
+        showToast(`"${groupName}" has been reset.`)
         await _refreshCard(groupId)
       }
     })
 
   } else if (action === 'close') {
-    if (!confirm(`Close "${groupName}"?\nMembers will see the "Hunt is Over" screen.`)) return
-    await closeGroup(groupId)
-    showToast(`🚪 "${groupName}" closed.`)
-    await _refreshCard(groupId)
+    await _showDangerConfirm({
+      title: 'Close Group',
+      message: `Close <strong>${_escHtml(groupName)}</strong>?<br><br>All members will see the "The Hunt is Over" screen and won't be able to use the group until it's reopened.`,
+      confirmLabel: 'Close Group',
+      confirmClass: 'admin-danger-btn--grey',
+      onConfirm: async () => {
+        await closeGroup(groupId)
+        showToast(`"${groupName}" closed.`)
+        await _refreshCard(groupId)
+      }
+    })
 
   } else if (action === 'reopen') {
-    if (!confirm(`Reopen "${groupName}"?`)) return
-    await reopenGroup(groupId)
-    showToast(`✅ "${groupName}" reopened.`)
-    await _refreshCard(groupId)
+    await _showDangerConfirm({
+      title: 'Reopen Group',
+      message: `Reopen <strong>${_escHtml(groupName)}</strong>?<br><br>Members will be able to access the group again.`,
+      confirmLabel: 'Reopen',
+      confirmClass: 'admin-danger-btn--green',
+      onConfirm: async () => {
+        await reopenGroup(groupId)
+        showToast(`"${groupName}" reopened.`)
+        await _refreshCard(groupId)
+      }
+    })
 
   } else if (action === 'delete') {
     await _showDangerConfirm({
-      title: '🗑 Delete Group',
+      title: 'Delete Group',
       message: `This will <strong>permanently delete</strong> all data for <strong>${_escHtml(groupName)}</strong> including all photos, quests, and memberships.<br><br>This cannot be undone.`,
       confirmLabel: 'Delete Group',
       confirmClass: 'admin-danger-btn--red',
-      groupName,
       onConfirm: async () => {
-        showToast('Deleting group… ⏳', 8000)
+        showToast('Deleting group…', 8000)
         await deleteGroup(groupId)
-        showToast(`🗑 "${groupName}" deleted.`)
-        // Remove the card entirely
+        showToast(`"${groupName}" deleted.`)
         const card = document.querySelector(`.admin-group-card[data-group-id="${groupId}"]`)
         if (card) card.remove()
-        // Refresh stats
         await _renderAdminScreen()
       }
     })
@@ -572,9 +597,9 @@ async function _refreshCard(groupId) {
   }
 }
 
-// ── Danger Confirmation Modal ─────────────────────────────────
+// ── Confirmation Modal ────────────────────────────────────────
 
-function _showDangerConfirm({ title, message, confirmLabel, confirmClass, groupName, onConfirm }) {
+function _showDangerConfirm({ title, message, confirmLabel, confirmClass, onConfirm }) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div')
     overlay.className = 'admin-danger-overlay'
@@ -582,24 +607,15 @@ function _showDangerConfirm({ title, message, confirmLabel, confirmClass, groupN
       <div class="admin-danger-modal">
         <div class="admin-danger-modal__title">${title}</div>
         <div class="admin-danger-modal__message">${message}</div>
-        <div class="admin-danger-modal__confirm-wrap">
-          <label class="admin-danger-modal__label">Type the group name to confirm:</label>
-          <input class="admin-danger-modal__input" type="text" placeholder="${_escHtml(groupName)}" autocomplete="off" />
-        </div>
         <div class="admin-danger-modal__actions">
           <button class="admin-danger-btn admin-danger-btn--cancel">Cancel</button>
-          <button class="admin-danger-btn ${confirmClass}" disabled>${confirmLabel}</button>
+          <button class="admin-danger-btn ${confirmClass}">${confirmLabel}</button>
         </div>
       </div>
     `
 
-    const input      = overlay.querySelector('.admin-danger-modal__input')
     const confirmBtn = overlay.querySelector(`.${confirmClass}`)
     const cancelBtn  = overlay.querySelector('.admin-danger-btn--cancel')
-
-    input.addEventListener('input', () => {
-      confirmBtn.disabled = input.value.trim() !== groupName
-    })
 
     cancelBtn.addEventListener('click', () => {
       overlay.remove()
@@ -621,7 +637,6 @@ function _showDangerConfirm({ title, message, confirmLabel, confirmClass, groupN
     })
 
     document.body.appendChild(overlay)
-    setTimeout(() => input.focus(), 50)
   })
 }
 
@@ -650,4 +665,24 @@ function _escHtml(str) {
 function _formatDate(isoString) {
   if (!isoString) return '—'
   return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// ── SVG Icon Library ──────────────────────────────────────────
+
+const ICONS = {
+  users: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  target: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  camera: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  calendar: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  'skip-forward': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>`,
+  refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+  lock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  unlock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+  trash: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  globe: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  x: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+}
+
+function _icon(name) {
+  return ICONS[name] || ''
 }

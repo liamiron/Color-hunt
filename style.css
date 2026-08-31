@@ -1712,6 +1712,19 @@ img {
   border: 1.5px solid #FCA5A5;
 }
 
+.admin-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: 1px;
+}
+
+.admin-status-dot--active  { background: #16a34a; }
+.admin-status-dot--closed  { background: #dc2626; }
+
 /* ── Admin Meta Items ─────────────────────────────────────── */
 .admin-group-card__meta {
   display: flex;
@@ -1776,7 +1789,7 @@ img {
 .admin-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 7px 12px;
   border-radius: var(--ch-radius-sm);
   font-family: var(--ch-font-head);
@@ -1784,6 +1797,11 @@ img {
   font-weight: 800;
   transition: transform 0.15s, opacity 0.15s, filter 0.15s;
   white-space: nowrap;
+}
+
+.admin-btn svg {
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .admin-btn:hover {
@@ -2032,6 +2050,11 @@ img {
   border: 1.5px solid rgba(61,78,26,0.2);
 }
 
+.admin-danger-btn--blue {
+  background: #2563EB;
+  color: #FFF;
+}
+
 .admin-danger-btn--orange {
   background: #EA580C;
   color: #FFF;
@@ -2039,6 +2062,16 @@ img {
 
 .admin-danger-btn--red {
   background: #DC2626;
+  color: #FFF;
+}
+
+.admin-danger-btn--grey {
+  background: #374151;
+  color: #FFF;
+}
+
+.admin-danger-btn--green {
+  background: #16A34A;
   color: #FFF;
 }
 
