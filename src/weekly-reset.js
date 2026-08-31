@@ -4,11 +4,6 @@ import { pickNextPrompt } from './prompts.js'
 import { generateAndUploadCollage } from './collage.js'
 import { showToast } from './ui.js'
 
-const DEV_TRIPLE_TAP_LIMIT = 2000  // ms window for triple-tap
-
-let _devTapCount = 0
-let _devTapTimer = null
-
 // ── Sunday Midnight Timing ────────────────────────────────────
 
 /**
@@ -72,31 +67,6 @@ export async function checkAndReset(quest) {
   }
 
   return false
-}
-
-/**
- * Dev shortcut: triple-tap the header to force a reset (for testing).
- * @param {object}   quest
- * @param {Function} onReset  callback after reset completes
- */
-export function setupDevReset(quest, onReset) {
-  const headerEl = document.getElementById('prompt-text')
-  if (!headerEl) return
-
-  headerEl.addEventListener('click', () => {
-    _devTapCount++
-    clearTimeout(_devTapTimer)
-
-    if (_devTapCount >= 3) {
-      _devTapCount = 0
-      showToast('⚙️ Dev: forcing weekly reset…')
-      // Use Date.now() as the "reset time" for dev purposes
-      performReset(quest, new Date(), quest.group_id).then(onReset)
-      return
-    }
-
-    _devTapTimer = setTimeout(() => { _devTapCount = 0 }, DEV_TRIPLE_TAP_LIMIT)
-  })
 }
 
 // ── Reset Flow ────────────────────────────────────────────────

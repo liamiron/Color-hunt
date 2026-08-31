@@ -11,7 +11,7 @@ import { loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } fr
 import { applyAccentColor } from './prompts.js'
 import { initGrid, updateGridPhotos } from './grid.js'
 import { initArchive, updateArchive } from './archive.js'
-import { checkAndReset, setupDevReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
+import { checkAndReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
 import { initRouter, getSession, getUserProfileCached, isAdmin, showScreen, refreshUserProfile } from './router.js'
 import { initAuth } from './auth.js'
 import { initGroup } from './group.js'
@@ -184,12 +184,7 @@ async function loadAndRender(silent = false) {
     initArchive(archive)
   }
 
-  // 8. Set up dev reset shortcut (triple-tap header)
-  if (!silent) {
-    setupDevReset(quest, async () => {
-      await loadAndRender()
-    })
-  }
+  // 8. Dev reset shortcut removed — use Admin Panel to end the week manually
 }
 
 // ── Admin Button ──────────────────────────────────────────────
