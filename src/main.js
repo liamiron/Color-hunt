@@ -12,10 +12,12 @@ import { applyAccentColor } from './prompts.js'
 import { initGrid, updateGridPhotos } from './grid.js'
 import { initArchive, updateArchive } from './archive.js'
 import { checkAndReset, setupDevReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
-import { initRouter, getSession, getUserProfileCached } from './router.js'
+import { initRouter, getSession, getUserProfileCached, isAdmin, showScreen, refreshUserProfile } from './router.js'
 import { initAuth } from './auth.js'
 import { initGroup } from './group.js'
 import { showToast } from './ui.js'
+import { initAdmin } from './admin.js'
+import { supabase } from './supabase.js'
 
 // ── DOM refs ────────────────────────────────────────────────────
 const promptHighlight  = document.getElementById('prompt-highlight')
@@ -58,6 +60,8 @@ function hideMainLoader() {
 // Initialise auth and group module listeners immediately (DOM is ready)
 initAuth()
 initGroup()
+_initAdminButton()
+_initHuntOverButton()
 
 // Boot the router — it decides which screen to show, calls onMainReady when appropriate
 initRouter(onMainReady).finally(() => {
@@ -71,11 +75,23 @@ initRouter(onMainReady).finally(() => {
 async function onMainReady() {
   try {
     const profile = getUserProfileCached()
-    _userId = profile?.user_id
-    _groupId  = profile?.group_id || null
+    _userId  = profile?.user_id
+    _groupId = profile?.group_id || null
 
     if (!_groupId) {
       showError(new Error('No group assigned. Please reload and sign in again.'))
+      return
+    }
+
+    // Check if group is closed → show Hunt is Over screen instead
+    const { data: group } = await supabase
+      .from('groups')
+      .select('is_closed')
+      .eq('id', _groupId)
+      .single()
+
+    if (group?.is_closed) {
+      showScreen('hunt-over')
       return
     }
 
@@ -88,11 +104,26 @@ async function onMainReady() {
   // Re-fetch when user returns to the tab (replaces Realtime)
   setupVisibilityRefresh(async () => {
     try {
+      // Re-check if group was closed while user was away
+      if (_groupId) {
+        const { data: group } = await supabase
+          .from('groups')
+          .select('is_closed')
+          .eq('id', _groupId)
+          .single()
+        if (group?.is_closed) {
+          showScreen('hunt-over')
+          return
+        }
+      }
       await loadAndRender(/* silent = */ true)
     } catch (err) {
       console.warn('[main] visibility refresh error:', err)
     }
   })
+
+  // Show admin button if user is admin
+  _updateAdminButtonVisibility()
 
   // Group ID chip — display and clipboard copy
   _initGroupIdChip()
@@ -159,6 +190,50 @@ async function loadAndRender(silent = false) {
       await loadAndRender()
     })
   }
+}
+
+// ── Admin Button ──────────────────────────────────────────────
+
+function _initAdminButton() {
+  const btn = document.getElementById('admin-panel-btn')
+  if (!btn) return
+  btn.addEventListener('click', () => {
+    showScreen('admin')
+    initAdmin()
+  })
+}
+
+function _updateAdminButtonVisibility() {
+  const btn = document.getElementById('admin-panel-btn')
+  if (!btn) return
+  if (isAdmin()) {
+    btn.removeAttribute('hidden')
+  } else {
+    btn.hidden = true
+  }
+}
+
+// ── Hunt is Over Button ───────────────────────────────────────
+
+function _initHuntOverButton() {
+  const btn = document.getElementById('hunt-over-find-btn')
+  if (!btn) return
+  btn.addEventListener('click', async () => {
+    btn.disabled = true
+    btn.textContent = 'Leaving…'
+    // Unassign user from the closed group
+    if (_userId) {
+      await supabase
+        .from('user_profiles')
+        .update({ group_id: null })
+        .eq('user_id', _userId)
+      _groupId = null
+      await refreshUserProfile()
+    }
+    showScreen('group')
+    btn.disabled = false
+    btn.textContent = 'Find a New Hunt'
+  })
 }
 
 // ── Group ID Chip ─────────────────────────────────────────────

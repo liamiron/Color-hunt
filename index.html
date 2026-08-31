@@ -127,6 +127,11 @@
           <!-- Populated by JS -->
         </button>
 
+        <!-- Admin button (top-right, visible only to admin users) -->
+        <button id="admin-panel-btn" class="header__admin-btn" aria-label="Admin Panel" hidden>
+          ⚙️
+        </button>
+
         <div class="header__pill-wrap">
           <h1 id="prompt-text" class="header__prompt">
             <span class="highlight" id="prompt-highlight" hidden>TARGET: LEMON YELLOW</span>
@@ -235,6 +240,58 @@
 
   <!-- Toast notification (shared across all screens) -->
   <div id="toast" class="toast" aria-live="assertive" hidden></div>
+
+  <!-- ══════════════════════
+         SCREEN: ADMIN PANEL
+    ══════════════════════ -->
+  <div id="screen-admin" class="screen screen--admin" hidden>
+
+    <!-- Header -->
+    <header class="admin-header">
+      <button id="admin-back-btn" class="admin-back-btn" aria-label="Back to app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Back
+      </button>
+      <h1 class="admin-header__title">
+        <span class="highlight admin-highlight">⚙️ ADMIN PANEL</span>
+      </h1>
+    </header>
+
+    <!-- Stats bar -->
+    <div id="admin-stats" class="admin-stats">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Groups list -->
+    <div class="admin-section">
+      <h2 class="admin-section__title">All Groups</h2>
+      <div id="admin-groups-list" class="admin-groups-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </div><!-- /#screen-admin -->
+
+  <!-- ══════════════════════
+         SCREEN: HUNT IS OVER
+    ══════════════════════ -->
+  <div id="screen-hunt-over" class="screen screen--hunt-over" hidden>
+    <div class="hunt-over-card">
+      <div class="hunt-over-emoji">🏁</div>
+      <h1 class="hunt-over-title">
+        <span class="highlight hunt-over-highlight">THE HUNT IS OVER</span>
+      </h1>
+      <p class="hunt-over-subtitle">
+        Your group has been closed.<br />
+        Thanks for all the captures! 📸
+      </p>
+      <button id="hunt-over-find-btn" class="hunt-over-btn">
+        Find a New Hunt
+      </button>
+    </div>
+  </div><!-- /#screen-hunt-over -->
 
   <script type="module" src="/src/main.js"></script>
 </body>

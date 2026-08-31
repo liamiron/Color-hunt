@@ -101,6 +101,30 @@ export function setupDevReset(quest, onReset) {
 
 // ── Reset Flow ────────────────────────────────────────────────
 
+/**
+ * Admin: Force-end the current week for a given group immediately.
+ * Loads the active quest, then performs the full reset flow.
+ * @param {string} groupId
+ * @returns {Promise<boolean>}
+ */
+export async function endWeekForGroup(groupId) {
+  const { data: quest, error } = await supabase
+    .from('quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !quest) {
+    console.error('[weekly-reset] endWeekForGroup: no active quest found for group', groupId)
+    return false
+  }
+
+  return await performReset(quest, new Date(), groupId)
+}
+
 async function performReset(quest, resetTime, groupId) {
   console.log('[weekly-reset] Performing weekly reset for quest:', quest.id)
   showToast('Week ending — generating collage…', 6000)

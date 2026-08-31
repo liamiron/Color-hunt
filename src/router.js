@@ -1,10 +1,12 @@
 /**
  * Color Hunt — Screen Router
  *
- * Manages the three top-level screens:
- *   - screen-auth   (Epic 4: login / magic link)
- *   - screen-group  (Epic 5: find your pack)
- *   - screen-main   (the existing app experience)
+ * Manages all top-level screens:
+ *   - screen-auth      (login)
+ *   - screen-group     (find your pack)
+ *   - screen-main      (the existing app experience)
+ *   - screen-admin     (admin panel — admin only)
+ *   - screen-hunt-over (shown when a group is closed)
  *
  * Boot sequence:
  *   1. Check Supabase session
@@ -16,7 +18,7 @@
 import { supabase } from './supabase.js'
 import { ensureUserProfile } from './state.js'
 
-const SCREENS = ['screen-auth', 'screen-group', 'screen-main']
+const SCREENS = ['screen-auth', 'screen-group', 'screen-main', 'screen-admin', 'screen-hunt-over']
 
 let _session      = null
 let _userProfile  = null
@@ -52,8 +54,8 @@ export async function initRouter(onMainReady) {
 }
 
 /**
- * Shows one screen and hides the others.
- * @param {'auth'|'group'|'main'} name
+ * Shows one screen and hides all others.
+ * @param {'auth'|'group'|'main'|'admin'|'hunt-over'} name
  */
 export function showScreen(name) {
   SCREENS.forEach(id => {
@@ -67,6 +69,18 @@ export function getSession() { return _session }
 
 /** Returns the user's profile row from user_profiles (may be null). */
 export function getUserProfileCached() { return _userProfile }
+
+/** Returns true if the current user has admin privileges. */
+export function isAdmin() { return _userProfile?.is_admin === true }
+
+/**
+ * Refreshes the cached profile from DB (e.g. after admin action changes group_id).
+ */
+export async function refreshUserProfile() {
+  if (!_session) return null
+  _userProfile = await ensureUserProfile(_session.user.id)
+  return _userProfile
+}
 
 /**
  * Called by auth.js after a successful sign-in.
