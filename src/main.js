@@ -16,7 +16,7 @@ import { initRouter, getSession, getUserProfileCached, isAdmin, showScreen, refr
 import { initAuth } from './auth.js'
 import { initGroup } from './group.js'
 import { showToast } from './ui.js'
-import { initAdmin } from './admin.js'
+import { initAdmin, getIcon } from './admin.js'
 import { supabase } from './supabase.js'
 
 // ── DOM refs ────────────────────────────────────────────────────
@@ -197,6 +197,7 @@ async function loadAndRender(silent = false) {
 function _initAdminButton() {
   const btn = document.getElementById('admin-panel-btn')
   if (!btn) return
+  btn.innerHTML = getIcon('settings')
   btn.addEventListener('click', () => {
     showScreen('admin')
     initAdmin()
