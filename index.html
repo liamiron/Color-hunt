@@ -129,7 +129,7 @@
 
         <!-- Admin button (top-right, visible only to admin users) -->
         <button id="admin-panel-btn" class="header__admin-btn" aria-label="Admin Panel" hidden>
-          ⚙️
+          ${_icon('settings')}
         </button>
 
         <div class="header__pill-wrap">
@@ -249,7 +249,8 @@
     <!-- Header -->
     <header class="admin-header">
       <button id="admin-back-btn" class="admin-back-btn" aria-label="Back to app">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
         Back
@@ -284,8 +285,7 @@
         <span class="highlight hunt-over-highlight">THE HUNT IS OVER</span>
       </h1>
       <p class="hunt-over-subtitle">
-        Your group has been closed.<br />
-        Thanks for all the captures! 📸
+        Thanks for all the captures!
       </p>
       <button id="hunt-over-find-btn" class="hunt-over-btn">
         Find a New Hunt
