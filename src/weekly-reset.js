@@ -87,12 +87,114 @@ export async function endWeekForGroup(groupId) {
     .limit(1)
     .maybeSingle()
 
-  if (error || !quest) {
-    console.error('[weekly-reset] endWeekForGroup: no active quest found for group', groupId)
+  if (error) {
+    console.error('[weekly-reset] endWeekForGroup: DB error fetching active quest', error)
     return false
   }
 
+  if (!quest) {
+    // No active quest — the group may be in a stuck state where the previous
+    // week's quest was closed but the new one was never created. Attempt recovery.
+    console.warn('[weekly-reset] endWeekForGroup: no active quest — attempting recovery for group', groupId)
+    return await recoverMissingQuest(groupId)
+  }
+
   return await performReset(quest, new Date(), groupId)
+}
+
+/**
+ * Recovery: called when there is NO active quest for a group (stuck state).
+ * Finds the most recently closed quest, generates its collage if missing,
+ * then creates the next quest.
+ *
+ * This safely handles the case where a reset partially failed:
+ *   - Old quest IS closed (is_active = false)
+ *   - New quest was NEVER created
+ *
+ * Safe to call even if called multiple times — the insert uses is_active guard
+ * and the second caller will find an active quest already exists.
+ *
+ * @param {string} groupId
+ * @returns {Promise<boolean>}
+ */
+export async function recoverMissingQuest(groupId) {
+  console.log('[weekly-reset] recoverMissingQuest: starting recovery for group', groupId)
+
+  // Find the most recent closed quest — that's the one that needs a successor
+  const { data: lastQuest, error: lastErr } = await supabase
+    .from('quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('is_active', false)
+    .order('week_number', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (lastErr || !lastQuest) {
+    console.error('[weekly-reset] recoverMissingQuest: no closed quest found for group', groupId, lastErr)
+    return false
+  }
+
+  // Double-check there really is no active quest (race-safety)
+  const { data: existingActive } = await supabase
+    .from('quests')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (existingActive) {
+    console.log('[weekly-reset] recoverMissingQuest: active quest already exists — nothing to do')
+    return true
+  }
+
+  // Generate a collage for the closed quest if it doesn't already have one
+  if (!lastQuest.collage_url) {
+    const allPhotos = await loadAllQuestPhotos(lastQuest.id)
+    if (allPhotos.length > 0) {
+      try {
+        const collageUrl = await generateAndUploadCollage(
+          lastQuest.id,
+          lastQuest.prompt_name,
+          lastQuest.prompt_color,
+        )
+        if (collageUrl) {
+          await supabase
+            .from('quests')
+            .update({ collage_url: collageUrl })
+            .eq('id', lastQuest.id)
+        }
+      } catch (err) {
+        console.error('[weekly-reset] recoverMissingQuest: collage generation error:', err)
+        // Non-fatal — we still create the new quest
+      }
+    }
+  }
+
+  // Create the next quest starting now
+  const usedNames = await loadUsedPromptNames(groupId)
+  const nextPrompt = pickNextPrompt(usedNames)
+  const startTime = new Date()
+
+  const { error: createError } = await supabase
+    .from('quests')
+    .insert({
+      group_id:     groupId,
+      week_number:  lastQuest.week_number + 1,
+      prompt_name:  nextPrompt.name,
+      prompt_color: nextPrompt.color,
+      start_date:   startTime.toISOString(),
+      is_active:    true,
+    })
+
+  if (createError) {
+    console.error('[weekly-reset] recoverMissingQuest: createQuest error:', createError)
+    return false
+  }
+
+  console.log('[weekly-reset] recoverMissingQuest: recovery complete. New prompt:', nextPrompt.name)
+  return true
 }
 
 async function performReset(quest, resetTime, groupId) {
@@ -117,10 +219,27 @@ async function performReset(quest, resetTime, groupId) {
     return false
   }
 
-  // Another client already closed it — bail out gracefully
+  // Another client already closed it — but we must verify the new quest was
+  // actually created before bailing. If the first client crashed between
+  // closing the old quest and inserting the new one, we need to finish the job.
   if (!updated) {
-    console.log('[weekly-reset] Quest already closed by another client.')
-    return true
+    console.log('[weekly-reset] Quest already closed by another client — verifying new quest exists…')
+    const { data: newActive } = await supabase
+      .from('quests')
+      .select('id')
+      .eq('group_id', groupId)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
+
+    if (newActive) {
+      // All good — new quest exists
+      return true
+    }
+
+    // New quest is missing — the first client must have failed mid-reset.
+    // Fall through to steps 2-4 to complete the reset ourselves.
+    console.warn('[weekly-reset] New quest missing after close — completing reset…')
   }
 
   // Step 2: Generate and upload collage from all group photos

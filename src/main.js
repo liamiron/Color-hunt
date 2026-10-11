@@ -11,7 +11,7 @@ import { loadActiveQuest, loadMyPhotos, loadArchive, setupVisibilityRefresh } fr
 import { applyAccentColor } from './prompts.js'
 import { initGrid, updateGridPhotos } from './grid.js'
 import { initArchive, updateArchive } from './archive.js'
-import { checkAndReset, timeUntilReset, getNextSundayMidnight } from './weekly-reset.js'
+import { checkAndReset, timeUntilReset, getNextSundayMidnight, recoverMissingQuest } from './weekly-reset.js'
 import { initRouter, getSession, getUserProfileCached, isAdmin, showScreen, refreshUserProfile } from './router.js'
 import { initAuth } from './auth.js'
 import { initGroup } from './group.js'
@@ -145,6 +145,20 @@ async function loadAndRender(silent = false) {
   }
 
   _activeQuest = quest
+
+  if (!quest) {
+    // No active quest — the group may be stuck in a half-reset state
+    // (old quest closed, new quest never created). Attempt recovery first.
+    if (_groupId) {
+      showToast('Recovering week — please wait…', 5000)
+      const recovered = await recoverMissingQuest(_groupId)
+      if (recovered) {
+        // Re-load after recovery
+        quest = await loadActiveQuest(_groupId)
+        _activeQuest = quest
+      }
+    }
+  }
 
   if (!quest) {
     showError(new Error('No active quest found. Check Supabase setup.'))
