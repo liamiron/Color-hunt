@@ -154,13 +154,14 @@ async function uploadPhoto(file, slotIndex) {
     // 1. Resize the image client-side
     const blob = await resizeImage(file, 1200)
 
-    // 2. Upload to Supabase Storage
-    const storagePath = `${_questId}/${_userId}/${slotIndex}.jpg`
+    // 2. Upload to Supabase Storage with a unique path to bust CDN/browser cache
+    const timestamp = Date.now()
+    const storagePath = `${_questId}/${_userId}/${slotIndex}_${timestamp}.jpg`
     const { error: uploadError } = await supabase.storage
       .from('photos')
       .upload(storagePath, blob, {
         contentType: 'image/jpeg',
-        upsert: true,
+        upsert: false,
       })
 
     if (uploadError) throw uploadError
@@ -172,7 +173,15 @@ async function uploadPhoto(file, slotIndex) {
 
     const imageUrl = urlData.publicUrl
 
-    // 4. Insert (or upsert) row in photos table
+    // 4. Delete the old storage object (if any) so storage doesn't accumulate orphans
+    const oldPhoto = _photos[slotIndex]
+    if (oldPhoto?.storage_path) {
+      await supabase.storage
+        .from('photos')
+        .remove([oldPhoto.storage_path])
+    }
+
+    // 5. Insert (or upsert) row in photos table
     const { error: dbError } = await supabase
       .from('photos')
       .upsert({
@@ -185,7 +194,7 @@ async function uploadPhoto(file, slotIndex) {
 
     if (dbError) throw dbError
 
-    // 5. Update local state + re-render
+    // 6. Update local state + re-render
     _photos[slotIndex] = { quest_id: _questId, user_id: _userId, slot_index: slotIndex, storage_path: storagePath, image_url: imageUrl }
     renderGrid()
 
