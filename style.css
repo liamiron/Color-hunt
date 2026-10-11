@@ -1848,6 +1848,12 @@ img {
   border: 1.5px solid #86EFAC;
 }
 
+.admin-btn--purple {
+  background: #EDE9FE;
+  color: #5B21B6;
+  border: 1.5px solid #C4B5FD;
+}
+
 .admin-btn--sm {
   padding: 4px 10px;
   font-size: 0.72rem;
@@ -2073,6 +2079,85 @@ img {
 .admin-danger-btn--green {
   background: #16A34A;
   color: #FFF;
+}
+
+.admin-danger-btn--purple {
+  background: #7C3AED;
+  color: #FFF;
+}
+
+/* ── Swap Prompt Modal ──────────────────────────────────────── */
+.admin-swap-modal {
+  max-width: 380px;
+}
+
+.admin-swap-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ch-text-soft);
+}
+
+.admin-swap-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: rgba(61,78,26,0.08);
+  color: var(--ch-ink);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.admin-swap-select-wrap {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-swap-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ch-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-swap-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-swap-preview {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.08);
+  transition: background 0.2s;
+}
+
+.admin-swap-select {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(61,78,26,0.18);
+  background: var(--ch-bg);
+  color: var(--ch-ink);
+  font-family: var(--ch-font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.admin-swap-select:focus {
+  outline: none;
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
 }
 
 /* ════════════════════════════════════════════════════════════

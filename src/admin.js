@@ -14,7 +14,7 @@ import { supabase } from './supabase.js'
 import { endWeekForGroup } from './weekly-reset.js'
 import { showToast } from './ui.js'
 import { showScreen } from './router.js'
-import { pickNextPrompt } from './prompts.js'
+import { pickNextPrompt, PROMPTS } from './prompts.js'
 
 // ── Public: Init ──────────────────────────────────────────────
 
@@ -212,6 +212,44 @@ export async function closeGroup(groupId) {
 }
 
 /**
+ * Admin: Swap the active quest's prompt mid-week without ending the week.
+ * The old prompt is returned to the available pool; the new prompt is one
+ * the group has never had.
+ * @param {string} groupId
+ * @param {string} newPromptName
+ * @param {string} newPromptColor
+ * @returns {Promise<boolean>}
+ */
+export async function swapGroupPrompt(groupId, newPromptName, newPromptColor) {
+  // Fetch the currently active quest
+  const { data: quest, error: fetchErr } = await supabase
+    .from('quests')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (fetchErr || !quest) {
+    console.error('[admin] swapGroupPrompt: no active quest', fetchErr)
+    return false
+  }
+
+  const { error: updateErr } = await supabase
+    .from('quests')
+    .update({ prompt_name: newPromptName, prompt_color: newPromptColor })
+    .eq('id', quest.id)
+
+  if (updateErr) {
+    console.error('[admin] swapGroupPrompt: update error', updateErr)
+    return false
+  }
+
+  return true
+}
+
+/**
  * Admin: Reopen a closed group.
  * @param {string} groupId
  */
@@ -402,6 +440,10 @@ function _buildGroupCard(group) {
       <button class="admin-btn admin-btn--blue" data-action="end-week" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" title="End this week now — generates collage and starts a new quest">
         ${_icon('skip-forward')} End Week
       </button>
+      ${quest ? `
+      <button class="admin-btn admin-btn--purple" data-action="swap-prompt" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" data-current-prompt="${_escHtml(quest.prompt_name)}" title="Swap the current prompt without ending the week">
+        ${_icon('shuffle')} Swap Prompt
+      </button>` : ''}
       <button class="admin-btn admin-btn--orange" data-action="reset" data-group-id="${group.id}" data-group-name="${_escHtml(group.name)}" title="Full reset — deletes ALL photos and history">
         ${_icon('refresh')} Reset
       </button>
@@ -543,6 +585,10 @@ async function _handleAction(e, btn) {
       }
     })
 
+  } else if (action === 'swap-prompt') {
+    const currentPromptName = btn.dataset.currentPrompt
+    await _showSwapPromptModal({ groupId, groupName, currentPromptName })
+
   } else if (action === 'delete') {
     await _showDangerConfirm({
       title: 'Delete Group',
@@ -595,6 +641,116 @@ async function _refreshCard(groupId) {
       </div>
     `
   }
+}
+
+// ── Swap Prompt Modal ─────────────────────────────────────────
+
+/**
+ * Shows a modal that lets the admin pick a new prompt for the active quest.
+ * Fetches all quests for the group to determine which prompts are available
+ * (i.e. never used — excluding the current one which is being returned).
+ */
+async function _showSwapPromptModal({ groupId, groupName, currentPromptName }) {
+  // Load all *other* quests to build the used-names set (exclude current week)
+  const { data: quests } = await supabase
+    .from('quests')
+    .select('prompt_name, is_active')
+    .eq('group_id', groupId)
+
+  // Used = prompts from past (closed) quests. The current active prompt is being
+  // returned to the pool, so we exclude it from the "used" set.
+  const usedNames = new Set(
+    (quests || [])
+      .filter(q => !q.is_active)          // only past weeks count as used
+      .map(q => q.prompt_name)
+  )
+  // The current prompt is being swapped out → don't mark it as used
+  usedNames.delete(currentPromptName)
+
+  const available = PROMPTS.filter(p => !usedNames.has(p.name) && p.name !== currentPromptName)
+
+  if (available.length === 0) {
+    showToast('No unused prompts available to swap to.')
+    return
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'admin-danger-overlay'
+
+    const optionsHtml = available
+      .map(p => `<option value="${_escHtml(p.name)}" data-color="${_escHtml(p.color)}">${_escHtml(p.name)}</option>`)
+      .join('')
+
+    overlay.innerHTML = `
+      <div class="admin-danger-modal admin-swap-modal">
+        <div class="admin-danger-modal__title">${_icon('shuffle')} Swap Prompt</div>
+        <div class="admin-danger-modal__message">
+          Replace the current prompt for <strong>${_escHtml(groupName)}</strong>.<br><br>
+          <span class="admin-swap-current">Current: <span class="admin-swap-badge" id="swap-current-badge">${_escHtml(currentPromptName)}</span></span>
+        </div>
+        <div class="admin-swap-select-wrap">
+          <label class="admin-swap-label" for="swap-prompt-select">New prompt</label>
+          <div class="admin-swap-select-row">
+            <span class="admin-swap-preview" id="swap-color-preview"></span>
+            <select class="admin-swap-select" id="swap-prompt-select">
+              ${optionsHtml}
+            </select>
+          </div>
+        </div>
+        <div class="admin-danger-modal__actions">
+          <button class="admin-danger-btn admin-danger-btn--cancel">Cancel</button>
+          <button class="admin-danger-btn admin-danger-btn--purple" id="swap-confirm-btn">Swap Prompt</button>
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(overlay)
+
+    const selectEl   = overlay.querySelector('#swap-prompt-select')
+    const confirmBtn = overlay.querySelector('#swap-confirm-btn')
+    const cancelBtn  = overlay.querySelector('.admin-danger-btn--cancel')
+    const previewEl  = overlay.querySelector('#swap-color-preview')
+
+    // Initialise preview color
+    const updatePreview = () => {
+      const selected = selectEl.options[selectEl.selectedIndex]
+      const color = selected?.dataset.color || '#888'
+      previewEl.style.background = color
+    }
+    updatePreview()
+    selectEl.addEventListener('change', updatePreview)
+
+    cancelBtn.addEventListener('click', () => {
+      overlay.remove()
+      resolve(false)
+    })
+
+    confirmBtn.addEventListener('click', async () => {
+      const selectedOpt = selectEl.options[selectEl.selectedIndex]
+      const newName  = selectedOpt.value
+      const newColor = selectedOpt.dataset.color
+
+      overlay.remove()
+      showToast('Swapping prompt…', 3000)
+
+      const ok = await swapGroupPrompt(groupId, newName, newColor)
+      if (ok) {
+        showToast(`✅ Prompt swapped to "${newName}".`)
+        await _refreshCard(groupId)
+      } else {
+        showToast('❌ Failed to swap prompt.')
+      }
+      resolve(ok)
+    })
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove()
+        resolve(false)
+      }
+    })
+  })
 }
 
 // ── Confirmation Modal ────────────────────────────────────────
@@ -672,6 +828,7 @@ function _formatDate(isoString) {
 const ICONS = {
   users: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   target: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  shuffle: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>`,
   camera: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
   settings: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
   calendar: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
